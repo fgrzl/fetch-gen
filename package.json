@@ -1,0 +1,29 @@
+{
+  "name": "@fgrzl/fetch-gen",
+  "version": "0.0.0",
+  "description": "Generate @fgrzl/fetch clients from OpenAPI spec",
+  "bin": {
+    "fetch-gen": "./fetch-gen"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "files": [
+    "fetch-gen",
+    "dist",
+    "scripts"
+  ],
+  "keywords": [
+    "fetch",
+    "generator",
+    "openapi",
+    "codegen",
+    "go"
+  ],
+  "author": "smiggleworth",
+  "license": "MIT",
+  "devDependencies": {
+    "prettier": "^3.5.3"
+  }
+}
