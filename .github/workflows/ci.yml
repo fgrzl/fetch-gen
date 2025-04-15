@@ -1,0 +1,76 @@
+name: ci
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+  packages: write
+  actions: write
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org/'
+          cache: 'npm'
+
+      - name: setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: setup gitversion
+        uses: gittools/actions/gitversion/setup@v1
+        with:
+          versionSpec: '5.x'
+
+      - name: execute gitversion
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v1
+
+      - name: apply gitversion
+        run: |
+          VERSION=${{ steps.gitversion.outputs.semVer }}
+          echo "Using version: $VERSION"
+          npm version --no-git-tag-version "$VERSION"
+
+      - name: go build
+        run: |
+          GOOS=darwin GOARCH=amd64  go build -o dist/darwin-x64/fetch-gen ./cmd
+          GOOS=darwin GOARCH=arm64  go build -o dist/darwin-arm64/fetch-gen ./cmd
+          GOOS=linux GOARCH=amd64   go build -o dist/linux-x64/fetch-gen ./cmd
+          GOOS=linux GOARCH=arm64   go build -o dist/linux-arm64/fetch-gen ./cmd
+          GOOS=windows GOARCH=amd64 go build -o dist/win32-x64/fetch-gen.exe ./cmd
+          GOOS=windows GOARCH=arm64 go build -o dist/win32-arm64/fetch-gen.exe ./cmd
+
+      - name: install dependencies
+        run: npm ci
+
+      - name: publish to npm
+        if: github.ref_type == 'tag' || github.ref == 'refs/heads/main'
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: workflow cleanup
+        uses: fgrzl/workflow-cleanup@v1

@@ -1,0 +1,49 @@
+next-version: 1.0.0
+mode: ContinuousDeployment
+
+branches:
+  main:
+    regex: ^main$
+    increment: patch
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+    is-release-branch: true
+    is-mainline: true
+    tag: ''
+  develop:
+    regex: ^develop$
+    increment: minor
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+    tag: alpha
+  feature:
+    regex: ^feature[/-]
+    increment: minor
+    track-merge-target: true
+    tag: feature
+  bugfix:
+    regex: ^bugfix[/-]
+    increment: patch
+    track-merge-target: true
+    tag: bugfix
+    source-branches: ['main', 'develop']
+  hotfix:
+    regex: ^hotfix[/-]
+    increment: patch
+    track-merge-target: true
+    tag: hotfix
+  release:
+    regex: ^release[/-]
+    increment: none
+    is-release-branch: true
+    tag: rc
+  pull-request:
+    regex: ^(pull|pr)[/-]
+    tag: pr
+    increment: patch
+    source-branches: ['main', 'develop']
+
+ignore:
+  sha: []
+
+commit-message-incrementing: Enabled
