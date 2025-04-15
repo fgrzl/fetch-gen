@@ -20,10 +20,8 @@ npx @fgrzl/fetch-gen --input openapi.yaml --output ./src/api.ts --instance ./src
 
 ```json
 {
- ...
   "scripts": {
     "fetch-gen": "npx @fgrzl/fetch-gen --input openapi.yaml --output ./src/api.ts",
-  },
- ...
+  }
 }
 ```
