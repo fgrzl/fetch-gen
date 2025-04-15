@@ -1,3 +1,5 @@
+[![ci](https://github.com/fgrzl/fetch-gen/actions/workflows/ci.yml/badge.svg)](https://github.com/fgrzl/fetch-gen/actions/workflows/ci.yml)
+[![Dependabot Updates](https://github.com/fgrzl/fetch-gen/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/fgrzl/fetch-gen/actions/workflows/dependabot/dependabot-updates)
 # @fgrzl/fetch-gen
 
 Generate @fgrzl/fetch clients from OpenAPI spec. 
