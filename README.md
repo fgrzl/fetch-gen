@@ -20,7 +20,7 @@ npx @fgrzl/fetch-gen --input openapi.yaml --output ./src/api.ts
 npx @fgrzl/fetch-gen --input openapi.yaml --output ./src/api.ts --instance ./src/custom
 ```
 
-#### setup in you package scripts
+#### create custome script in package.json
 
 ```json
 {
