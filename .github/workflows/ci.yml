@@ -63,15 +63,8 @@ jobs:
           GOOS=windows GOARCH=amd64 go build -o dist/win32-x64/fetch-gen.exe ./cmd
           GOOS=windows GOARCH=arm64 go build -o dist/win32-arm64/fetch-gen.exe ./cmd
 
-
       - name: install dependencies
         run: npm ci
-
-      - name: npm build
-        run: npm run build
-
-      - name: test
-        run: npm run test -- --coverage
 
       - name: publish to npm
         if: github.ref_type == 'tag' || github.ref == 'refs/heads/main'
