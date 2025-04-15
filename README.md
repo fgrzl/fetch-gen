@@ -1,6 +1,8 @@
 # @fgrzl/fetch-gen
 
-Generate @fgrzl/fetch clients from OpenAPI spec
+Generate @fgrzl/fetch clients from OpenAPI spec. 
+
+see -> https://github.com/fgrzl/fetch
 
 ## Usage
 
