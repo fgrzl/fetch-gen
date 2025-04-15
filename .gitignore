@@ -21,7 +21,6 @@ build/
 
 # Go module/vendor stuff
 vendor/
-go.sum
 
 # IDEs and tools
 .idea/
