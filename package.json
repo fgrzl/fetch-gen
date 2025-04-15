@@ -12,7 +12,7 @@
     "go"
   ],
   "bin": {
-    "fetch-gen": "./fetch-gen"
+    "fetch-gen": "fetch-gen"
   },
   "files": [
     "fetch-gen",
