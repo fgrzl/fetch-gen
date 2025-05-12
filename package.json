@@ -12,17 +12,14 @@
     "go"
   ],
   "bin": {
-    "fetch-gen": "fetch-gen"
+    "fetch-gen": "./dist/shim.js"
   },
   "files": [
-    "fetch-gen",
-    "dist",
-    "scripts"
+    "dist"
   ],
   "scripts": {
     "build": "tsc",
-    "format": "prettier --write .",
-    "postinstall": "node scripts/postinstall.js"
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "@types/node": "^22.15.17",
