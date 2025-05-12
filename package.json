@@ -12,18 +12,18 @@
     "go"
   ],
   "bin": {
-    "fetch-gen": "fetch-gen"
+    "fetch-gen": "./dist/shim.js"
   },
   "files": [
-    "fetch-gen",
-    "dist",
-    "scripts"
+    "dist"
   ],
   "scripts": {
-    "format": "prettier --write .",
-    "postinstall": "node scripts/postinstall.js"
+    "build": "tsc",
+    "format": "prettier --write ."
   },
   "devDependencies": {
-    "prettier": "^3.5.3"
+    "@types/node": "^22.15.17",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3"
   }
 }

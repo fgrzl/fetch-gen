@@ -4,46 +4,43 @@ mode: ContinuousDeployment
 branches:
   main:
     regex: ^main$
-    increment: patch
-    prevent-increment-of-merged-branch-version: true
-    track-merge-target: false
-    is-release-branch: true
-    is-mainline: true
-    tag: ''
+    label: ''
+    increment: Minor
+    tracks-release-branches: false
+    is-release-branch: false
+
   develop:
     regex: ^develop$
-    increment: minor
-    prevent-increment-of-merged-branch-version: true
-    track-merge-target: false
-    tag: alpha
+    label: alpha
+    increment: Patch
+
   feature:
-    regex: ^feature[/-]
-    increment: minor
-    track-merge-target: true
-    tag: feature
-  bugfix:
-    regex: ^bugfix[/-]
-    increment: patch
-    track-merge-target: true
-    tag: bugfix
-    source-branches: ['main', 'develop']
-  hotfix:
-    regex: ^hotfix[/-]
-    increment: patch
-    track-merge-target: true
-    tag: hotfix
+    regex: ^features?[\/-](?<BranchName>.+)
+    label: '{BranchName}'
+    increment: Patch
+
   release:
-    regex: ^release[/-]
-    increment: none
+    regex: ^releases?/.*$
+    label: rc
+    increment: Patch
     is-release-branch: true
-    tag: rc
+
+  hotfix:
+    regex: ^hotfix(es)?/.*$
+    label: beta
+    increment: Patch
+
+  support:
+    regex: ^support/.*$
+    label: support
+
   pull-request:
-    regex: ^(pull|pr)[/-]
-    tag: pr
-    increment: patch
-    source-branches: ['main', 'develop']
+    regex: ^(pull|pr)/.*$
+    label: pr
+    increment: Patch
+    source-branches:
+      - main
+      - develop
 
 ignore:
   sha: []
-
-commit-message-incrementing: Enabled
