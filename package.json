@@ -18,11 +18,12 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "esbuild src/shim.ts --bundle --platform=node --format=cjs --outfile=dist/shim.js",
     "format": "prettier --write ."
   },
   "devDependencies": {
     "@types/node": "^22.15.17",
+    "esbuild": "^0.25.4",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3"
   }

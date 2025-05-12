@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 
-import { platform, arch } from 'os';
 import { spawnSync } from 'child_process';
-import { join } from 'path';
 import { existsSync } from 'fs';
+import { arch, platform } from 'os';
+import { join, dirname } from 'path';
+
+// __dirname works fine in CommonJS (esbuild output will use it)
+declare const __dirname: string;
 
 const platformMap: Record<string, string> = {
   win32: 'win32',
