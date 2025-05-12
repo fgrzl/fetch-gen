@@ -12,7 +12,7 @@
     "go"
   ],
   "bin": {
-    "fetch-gen": "./dist/shim.js"
+    "fetch-gen": "dist/shim.js"
   },
   "files": [
     "dist"
