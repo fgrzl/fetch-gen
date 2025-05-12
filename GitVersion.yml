@@ -15,8 +15,8 @@ branches:
     increment: Patch
 
   feature:
-    regex: ^(features?|feature)/.*
-    label: useBranchName
+    regex: ^features?[\/-](?<BranchName>.+)
+    label: '{BranchName}'
     increment: Patch
 
   release:
