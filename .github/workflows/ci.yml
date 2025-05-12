@@ -16,7 +16,7 @@ permissions:
   actions: write
 
 jobs:
-  build-and-test:
+  build-and-publish:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
