@@ -68,7 +68,7 @@ jobs:
         run: npm ci
 
       - name: Build Shim
-        run: npm run build        
+        run: npm run build
 
       - name: Publish to NPM
         if: github.ref_type == 'tag' || github.ref == 'refs/heads/main'
