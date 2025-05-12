@@ -20,10 +20,13 @@
     "scripts"
   ],
   "scripts": {
+    "build": "tsc",
     "format": "prettier --write .",
     "postinstall": "node scripts/postinstall.js"
   },
   "devDependencies": {
-    "prettier": "^3.5.3"
+    "@types/node": "^22.15.17",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3"
   }
 }

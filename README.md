@@ -1,8 +1,9 @@
 [![ci](https://github.com/fgrzl/fetch-gen/actions/workflows/ci.yml/badge.svg)](https://github.com/fgrzl/fetch-gen/actions/workflows/ci.yml)
 [![Dependabot Updates](https://github.com/fgrzl/fetch-gen/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/fgrzl/fetch-gen/actions/workflows/dependabot/dependabot-updates)
+
 # @fgrzl/fetch-gen
 
-Generate @fgrzl/fetch clients from OpenAPI spec. 
+Generate @fgrzl/fetch clients from OpenAPI spec.
 
 see -> https://github.com/fgrzl/fetch
 
@@ -25,7 +26,7 @@ npx @fgrzl/fetch-gen --input openapi.yaml --output ./src/api.ts --instance ./src
 ```json
 {
   "scripts": {
-    "fetch-gen": "npx @fgrzl/fetch-gen --input openapi.yaml --output ./src/api.ts",
+    "fetch-gen": "npx @fgrzl/fetch-gen --input openapi.yaml --output ./src/api.ts"
   }
 }
 ```

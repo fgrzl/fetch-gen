@@ -21,40 +21,40 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: checkout
+      - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: setup node
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 'stable'
           registry-url: 'https://registry.npmjs.org/'
           cache: 'npm'
 
-      - name: setup go
+      - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.22'
+          go-version: '1.24.3'
           cache: true
 
-      - name: setup gitversion
+      - name: Setup GitVersion
         uses: gittools/actions/gitversion/setup@v1
         with:
-          versionSpec: '5.x'
+          versionSpec: '6.0.0'
 
-      - name: execute gitversion
+      - name: Execute GitVersion
         id: gitversion
         uses: gittools/actions/gitversion/execute@v1
 
-      - name: apply gitversion
+      - name: Apply GitVersion
         run: |
           VERSION=${{ steps.gitversion.outputs.semVer }}
           echo "Using version: $VERSION"
           npm version --no-git-tag-version "$VERSION"
 
-      - name: go build
+      - name: Build Executable
         run: |
           GOOS=darwin GOARCH=amd64  go build -o dist/darwin-x64/fetch-gen ./cmd
           GOOS=darwin GOARCH=arm64  go build -o dist/darwin-arm64/fetch-gen ./cmd
@@ -62,15 +62,19 @@ jobs:
           GOOS=linux GOARCH=arm64   go build -o dist/linux-arm64/fetch-gen ./cmd
           GOOS=windows GOARCH=amd64 go build -o dist/win32-x64/fetch-gen.exe ./cmd
           GOOS=windows GOARCH=arm64 go build -o dist/win32-arm64/fetch-gen.exe ./cmd
+          chmod +x dist/*/fetch-gen
 
-      - name: install dependencies
+      - name: Install Dependencies
         run: npm ci
 
-      - name: publish to npm
+      - name: Build Shim
+        run: npm run build        
+
+      - name: Publish to NPM
         if: github.ref_type == 'tag' || github.ref == 'refs/heads/main'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: workflow cleanup
+      - name: Workflow Cleanup
         uses: fgrzl/workflow-cleanup@v1
