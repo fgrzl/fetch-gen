@@ -71,9 +71,20 @@ jobs:
 
       - name: Publish to NPM
         if: github.ref_type == 'tag' || github.ref == 'refs/heads/develop'
-        run: npm publish --access public
+        run: |
+          VERSION=${{ steps.gitversion.outputs.semVer }}
+          LABEL=${{ steps.gitversion.outputs.PreReleaseLabel }}
+
+          if [[ "$VERSION" == *-* ]]; then
+            echo "Publishing prerelease version: $VERSION with tag: $LABEL"
+            npm publish --access public --tag "$LABEL"
+          else
+            echo "Publishing stable version: $VERSION"
+            npm publish --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
 
       - name: Workflow Cleanup
         uses: fgrzl/workflow-cleanup@v1
