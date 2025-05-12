@@ -1,55 +1,46 @@
-next-version: 1.0.0
+version: 1.0.0
 mode: ContinuousDeployment
 
 branches:
   main:
     regex: ^main$
-    increment: Patch
-    is-mainline: true
-    is-release-branch: true
     label: ''
-  
+    increment: Minor
+    tracks-release-branches: false
+    is-release-branch: false
+
   develop:
     regex: ^develop$
-    increment: Minor
     label: alpha
+    increment: Patch
 
   feature:
-    regex: ^feature[/-]
-    increment: Minor
+    regex: ^(features?|feature)/.*
     label: useBranchName
-
-  bugfix:
-    regex: ^bugfix[/-]
     increment: Patch
-    label: useBranchName
-    source-branches:
-      - main
-      - develop
-
-  hotfix:
-    regex: ^hotfix[/-]
-    increment: Patch
-    label: useBranchName
-    source-branches:
-      - main
-      - develop
 
   release:
-    regex: ^release[/-]
-    increment: None
-    is-release-branch: true
+    regex: ^releases?/.*$
     label: rc
+    increment: Patch
+    is-release-branch: true
+
+  hotfix:
+    regex: ^hotfix(es)?/.*$
+    label: beta
+    increment: Patch
+
+  support:
+    regex: ^support/.*$
+    label: support
 
   pull-request:
-    regex: ^(pull|pr)[/-]
+    regex: ^(pull|pr)/.*$
+    label: pr
     increment: Patch
-    label: PullRequest
     source-branches:
       - main
       - develop
-
-commit-message-incrementing: Enabled
 
 ignore:
   sha: []
