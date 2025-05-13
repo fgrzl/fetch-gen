@@ -79,7 +79,16 @@ func main() {
 	}
 
 	inputPath := os.Args[2]
+	inputPath, err := filepath.Abs(inputPath)
+	if err != nil {
+		panic(err)
+	}
+
 	outputPath := os.Args[4]
+	outputPath, err = filepath.Abs(outputPath)
+	if err != nil {
+		panic(err)
+	}
 
 	instance := "@fgrzl/fetch"
 	if len(os.Args) >= 7 && os.Args[5] == "--instance" {
