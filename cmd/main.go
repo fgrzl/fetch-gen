@@ -89,6 +89,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	err = os.MkdirAll(filepath.Dir(outputPath), 0755)
+	if err != nil {
+		panic(err)
+	}
 
 	instance := "@fgrzl/fetch"
 	if len(os.Args) >= 7 && os.Args[5] == "--instance" {
