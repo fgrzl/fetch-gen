@@ -22,7 +22,7 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "@types/node": "^22.15.30",
+    "@types/node": "^24.0.1",
     "esbuild": "^0.25.5",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3"
