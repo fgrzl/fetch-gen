@@ -5,8 +5,16 @@ import { existsSync } from 'fs';
 import { arch, platform } from 'os';
 import { join, dirname } from 'path';
 
-// __dirname works fine in CommonJS (esbuild output will use it)
-declare const __dirname: string;
+// Works in both ESM and CJS
+let __dirname: string;
+try {
+  // ESM context
+  const { fileURLToPath } = await import('url');
+  __dirname = dirname(fileURLToPath(import.meta.url));
+} catch {
+  // CJS context (or fallback)
+  __dirname = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+}
 
 const platformMap: Record<string, string> = {
   win32: 'win32',
