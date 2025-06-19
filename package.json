@@ -5,8 +5,13 @@
   "author": "smiggleworth",
   "license": "MIT",
   "keywords": ["fetch", "generator", "openapi", "codegen", "go"],
+  "type": "module",
   "bin": {
-    "fetch-gen": "dist/shim.js"
+    "fetch-gen": "./dist/shim.cjs"
+  },
+  "exports": {
+    "import": "./dist/shim.mjs",
+    "require": "./dist/shim.cjs"
   },
   "files": ["dist"]
 }
