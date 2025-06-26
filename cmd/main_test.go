@@ -62,7 +62,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
     delete:
-      operationId: deleteUser
+      operationId: delUser
       parameters:
         - name: id
           in: path
@@ -71,7 +71,7 @@ paths:
             type: string
       responses:
         '204':
-          description: Deleted
+          description: del
 components:
   schemas:
     User:
@@ -125,19 +125,19 @@ func TestGenerateFullAPIWithComplexModel(t *testing.T) {
 	assert.Contains(t, code, "export const getUser", "should generate getUser")
 	assert.Contains(t, code, "export const createUser", "should generate createUser")
 	assert.Contains(t, code, "export const updateUser", "should generate updateUser")
-	assert.Contains(t, code, "export const deleteUser", "should generate deleteUser")
+	assert.Contains(t, code, "export const delUser", "should generate delUser")
 
 	// Function return types
 	assert.Contains(t, code, "getUser = (): Promise<Array<User>>", "should return array of User")
 	assert.Contains(t, code, "createUser = (body: User): Promise<User>", "should return User")
 	assert.Contains(t, code, "updateUser = (id: string, body: User): Promise<User>", "should return User")
-	assert.Contains(t, code, "deleteUser = (id: string): Promise<any>", "should return any")
+	assert.Contains(t, code, "delUser = (id: string): Promise<any>", "should return any")
 
 	// Client calls
 	assert.Contains(t, code, "client.get(`/users`)", "should call GET")
 	assert.Contains(t, code, "client.post(`/users`", "should call POST")
 	assert.Contains(t, code, "client.put(`/users/${id}`", "should call PUT")
-	assert.Contains(t, code, "client.delete(`/users/${id}`)", "should call DELETE")
+	assert.Contains(t, code, "client.del(`/users/${id}`)", "should call DELETE")
 
 	// TypeScript model details
 	assert.Contains(t, code, `status: "active" | "inactive" | "banned";`, "should contain enum")

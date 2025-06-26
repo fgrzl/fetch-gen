@@ -35,17 +35,15 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.24.3'
+          go-version: '1.24.4'
           cache: true
 
-      - name: Setup GitVersion
-        uses: gittools/actions/gitversion/setup@v1
-        with:
-          versionSpec: '6.0.0'
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v4.0.0
 
-      - name: Execute GitVersion
-        id: gitversion
-        uses: gittools/actions/gitversion/execute@v1
+      - name: Calculate Version
+        id: version
+        uses: gittools/actions/gitversion/execute@v4.0.0
 
       - name: Install Dependencies
         run: npm ci

@@ -1,0 +1,154 @@
+swagger: '2.0'
+info:
+  title: Mesh Portal API
+  version: 1.0.0
+  description: Subset of the API focused on board operations
+
+basePath: /api/v1
+consumes:
+  - application/json
+produces:
+  - application/json
+
+paths:
+  /boards:
+    get:
+      operationId: listBoards
+      summary: List all boards
+      description: Retrieves all boards for the current tenant or user
+      tags:
+        - Boards
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/models.BoardModel'
+        '400':
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ProblemDetails'
+        '500':
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ProblemDetails'
+
+    post:
+      operationId: postBoard
+      summary: Create a new board
+      description: Adds a new board with the given details
+      tags:
+        - Boards
+      parameters:
+        - name: request
+          in: body
+          required: true
+          description: Board creation payload
+          schema:
+            $ref: '#/definitions/models.BoardArgs'
+      responses:
+        '201':
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Accepted'
+        '400':
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ProblemDetails'
+        '500':
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ProblemDetails'
+
+  /boards/{board_id}:
+    get:
+      operationId: getBoard
+      summary: Get a board by ID
+      description: Retrieves a board by its ID
+      tags:
+        - Boards
+      parameters:
+        - name: board_id
+          in: path
+          required: true
+          type: string
+          description: Board ID
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/models.BoardModel'
+        '400':
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ProblemDetails'
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ProblemDetails'
+
+    delete:
+      operationId: deleteBoard
+      summary: Delete a board
+      description: Deletes a board by its ID
+      tags:
+        - Boards
+      parameters:
+        - name: board_id
+          in: path
+          required: true
+          type: string
+          description: Board ID
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ProblemDetails'
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ProblemDetails'
+
+definitions:
+  models.BoardArgs:
+    type: object
+    properties:
+      name:
+        type: string
+
+  models.BoardModel:
+    type: object
+    properties:
+      board_id:
+        type: string
+      name:
+        type: string
+
+  models.Accepted:
+    type: object
+    properties:
+      reason:
+        type: string
+        description: Reason is an optional explanation for the acceptance (e.g., "queued", "acknowledged")
+
+  models.ProblemDetails:
+    type: object
+    properties:
+      type:
+        type: string
+        description: A URI reference to the error type
+      title:
+        type: string
+        description: A brief summary of the error
+      status:
+        type: integer
+        description: HTTP status code
+      detail:
+        type: string
+        description: Specific details about the error
+      instance:
+        type: string
+        description: A URI identifying the error instance, nullable

@@ -123,14 +123,9 @@ func main() {
 		for method, op := range methods {
 			id := op.OperationID
 			if id == "" {
-				methodUpper := strings.ToUpper(method)
-				pathClean := strings.ReplaceAll(strings.Trim(path, "/"), "/", "_")
-				if pathClean == "" {
-					pathClean = "root"
-				}
-				id = fmt.Sprintf("%s_%s", methodUpper, pathClean)
+				fmt.Printf("missing operation id for %s %s\n", strings.ToUpper(method), path)
+				continue
 			}
-
 			params := []Parameter{}
 			displayPath := path
 			for _, p := range op.Parameters {
@@ -158,6 +153,10 @@ func main() {
 						}
 					}
 				}
+			}
+
+			if method == "delete" {
+				method = "del"
 			}
 
 			ops = append(ops, NamedOperation{
