@@ -42,7 +42,7 @@ jobs:
         uses: gittools/actions/gitversion/setup@v4.0.0
 
       - name: Calculate Version
-        id: version
+        id: gitversion
         uses: gittools/actions/gitversion/execute@v4.0.0
 
       - name: Install Dependencies
@@ -50,7 +50,7 @@ jobs:
 
       - name: Apply GitVersion
         run: |
-          VERSION=${{ steps.gitversion.outputs.semVer }}
+          VERSION=${{ steps.gitversion.outputs.SemVer }}
           echo "Using version: $VERSION"
           npm version --no-git-tag-version "$VERSION"
 
@@ -67,10 +67,10 @@ jobs:
       - name: Publish to NPM
         if: github.ref_type == 'tag' || github.ref == 'refs/heads/develop'
         run: |
-          VERSION=${{ steps.gitversion.outputs.semVer }}
+          VERSION=${{ steps.gitversion.outputs.SemVer }}
           LABEL=${{ steps.gitversion.outputs.PreReleaseLabel }}
 
-          if [[ "$VERSION" == *-* ]]; then
+          if [[ "$VERSION" == *-* && -n "$LABEL" ]]; then
             echo "Publishing prerelease version: $VERSION with tag: $LABEL"
             npm publish --access public --tag "$LABEL"
           else
