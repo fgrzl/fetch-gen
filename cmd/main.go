@@ -144,7 +144,7 @@ func main() {
 			}
 
 			resType := "any"
-			for _, code := range []string{"200", "201", "204", "default"} {
+			for _, code := range []string{"200", "201", "202", "203", "204", "206", "default"} {
 				if resp, ok := op.Responses[code]; ok {
 					// Handle 204 No Content specially
 					if code == "204" {
@@ -286,9 +286,11 @@ import type { FetchClient, FetchResponse } from '{{.Instance}}';
 
 export function createApi(client: FetchClient) {
 	return {
-		{{- range .Ops}}
-		{{.ID}}: ({{argList .}}): Promise<FetchResponse<{{responseType .}}>> =>
-			client.{{.Method}}(` + "`" + `{{.DisplayPath}}` + "`" + `{{if .HasBody}}, body{{end}}),
+		{{- range $i, $op := .Ops}}
+		{{if $i}}
+
+		{{end}}{{$op.ID}}: ({{argList $op}}): Promise<FetchResponse<{{responseType $op}}>> =>
+			client.{{$op.Method}}(` + "`" + `{{$op.DisplayPath}}` + "`" + `{{if $op.HasBody}}, body{{end}}),
 		{{- end}}
 	};
 }
