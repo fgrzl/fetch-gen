@@ -102,7 +102,7 @@ components:
 `
 
 func TestGenerateFullAPIWithComplexModel(t *testing.T) {
-	tmpDir := "./"
+	tmpDir := t.TempDir()
 	inputPath := filepath.Join(tmpDir, "openapi.yaml")
 	outputPath := filepath.Join(tmpDir, "api.ts")
 

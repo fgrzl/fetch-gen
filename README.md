@@ -44,9 +44,9 @@ const apiClient = createApi(api);
 
 const response = await apiClient.getUser();
 if (response.ok) {
-  console.log(response.data);     // Your typed data
-  console.log(response.status);   // HTTP status code
-  console.log(response.headers);  // Response headers
+  console.log(response.data); // Your typed data
+  console.log(response.status); // HTTP status code
+  console.log(response.headers); // Response headers
 } else {
   console.error(response.error?.message);
 }
