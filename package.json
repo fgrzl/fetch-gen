@@ -4,7 +4,13 @@
   "description": "Generate @fgrzl/fetch clients from OpenAPI spec",
   "author": "smiggleworth",
   "license": "MIT",
-  "keywords": ["fetch", "generator", "openapi", "codegen", "go"],
+  "keywords": [
+    "fetch",
+    "generator",
+    "openapi",
+    "codegen",
+    "go"
+  ],
   "type": "module",
   "bin": {
     "fetch-gen": "./dist/shim.cjs"
@@ -13,5 +19,13 @@
     "import": "./dist/shim.mjs",
     "require": "./dist/shim.cjs"
   },
-  "files": ["dist"]
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
 }
