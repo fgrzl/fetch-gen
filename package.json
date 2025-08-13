@@ -27,5 +27,8 @@
   },
   "devDependencies": {
     "prettier": "^3.6.2"
+  },
+  "dependencies": {
+    "@fgrzl/fetch": "^1.1.0-alpha.3"
   }
 }

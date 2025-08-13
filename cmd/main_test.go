@@ -102,7 +102,7 @@ components:
 `
 
 func TestGenerateFullAPIWithComplexModel(t *testing.T) {
-	tmpDir := t.TempDir()
+	tmpDir := "./"
 	inputPath := filepath.Join(tmpDir, "openapi.yaml")
 	outputPath := filepath.Join(tmpDir, "api.ts")
 
@@ -121,17 +121,13 @@ func TestGenerateFullAPIWithComplexModel(t *testing.T) {
 	assert.NoError(t, err, "should generate api.ts")
 	code := string(content)
 
-	// Function definitions
-	assert.Contains(t, code, "export const getUser", "should generate getUser")
-	assert.Contains(t, code, "export const createUser", "should generate createUser")
-	assert.Contains(t, code, "export const updateUser", "should generate updateUser")
-	assert.Contains(t, code, "export const delUser", "should generate delUser")
-
-	// Function return types
-	assert.Contains(t, code, "getUser = (): Promise<Array<User>>", "should return array of User")
-	assert.Contains(t, code, "createUser = (body: User): Promise<User>", "should return User")
-	assert.Contains(t, code, "updateUser = (id: string, body: User): Promise<User>", "should return User")
-	assert.Contains(t, code, "delUser = (id: string): Promise<any>", "should return any")
+	// Function structure - should use createApi pattern
+	assert.Contains(t, code, "export function createApi(client: FetchClient)", "should generate createApi function")
+	assert.Contains(t, code, "import type { FetchClient, FetchResponse }", "should import FetchResponse type")
+	assert.Contains(t, code, "getUser: (): Promise<FetchResponse<Array<User>>>", "should generate getUser method")
+	assert.Contains(t, code, "createUser: (body: User): Promise<FetchResponse<User>>", "should generate createUser method")
+	assert.Contains(t, code, "updateUser: (id: string, body: User): Promise<FetchResponse<User>>", "should generate updateUser method")
+	assert.Contains(t, code, "delUser: (id: string): Promise<FetchResponse<boolean>>", "should generate delUser method")
 
 	// Client calls
 	assert.Contains(t, code, "client.get(`/users`)", "should call GET")
