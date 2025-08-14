@@ -16,9 +16,9 @@ permissions:
   actions: write
 
 jobs:
-  build-and-publish:
+  build-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -30,10 +30,25 @@ jobs:
           go-version: '1.24'
           cache: true
 
-      - name: Run Tests
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Tidy Go Modules
+        run: go mod tidy
+
+      - name: Download Go Dependencies
+        run: go mod download
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Run Go Tests
         run: go test ./...
 
-      - name: Build Executables
+      - name: Build Go Executables
         run: |
           mkdir -p dist/{darwin-x64,darwin-arm64,linux-x64,linux-arm64,win32-x64,win32-arm64}
           GOOS=darwin GOARCH=amd64  go build -o dist/darwin-x64/fetch-gen ./cmd
@@ -42,6 +57,12 @@ jobs:
           GOOS=linux GOARCH=arm64   go build -o dist/linux-arm64/fetch-gen ./cmd
           GOOS=windows GOARCH=amd64 go build -o dist/win32-x64/fetch-gen.exe ./cmd
           GOOS=windows GOARCH=arm64 go build -o dist/win32-arm64/fetch-gen.exe ./cmd
+
+      - name: Build TypeScript Shims
+        run: npm run build
+
+      - name: Run TypeScript Tests
+        run: npm test
 
       - name: Workflow Cleanup
         uses: fgrzl/workflow-cleanup@v1

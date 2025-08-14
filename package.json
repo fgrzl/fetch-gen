@@ -23,7 +23,7 @@
     "dist"
   ],
   "scripts": {
-    "build:shims": "tsup",
+    "build": "tsup",
     "clean": "rimraf dist node_modules",
     "test": "vitest run",
     "format": "prettier --write ."
