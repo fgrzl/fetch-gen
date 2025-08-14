@@ -1,0 +1,14 @@
+name: Workflow Cleanup
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Run daily at 2:00 AM UTC
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Workflow Cleanup
+        uses: fgrzl/actions/workflow-cleanup@v0.0.5

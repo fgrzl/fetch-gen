@@ -1,0 +1,918 @@
+openapi: 3.0.0
+info:
+  title: Comprehensive Test API
+  version: 1.0.0
+  description: Comprehensive test specification for fetch-gen covering edge cases and diverse scenarios
+paths:
+  /users:
+    get:
+      operationId: getUsers
+      summary: Get all users
+      description: Retrieve a paginated list of all users
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+          description: Page number for pagination
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Number of users per page
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, inactive, banned]
+          description: Filter by user status
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+                required:
+                  - data
+                  - pagination
+    post:
+      operationId: createUser
+      summary: Create new user
+      description: Create a new user account with validation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '202':
+          description: User creation accepted for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncResponse'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/{id}:
+    get:
+      operationId: getUserById
+      summary: Get user by ID
+      description: Retrieve a specific user by their unique identifier
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique user identifier
+        - name: include_profile
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Include detailed profile information
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      operationId: updateUser
+      summary: Update user
+      description: Update an existing user's information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+        '409':
+          description: Conflict - email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      operationId: patchUser
+      summary: Partially update user
+      description: Partially update a user with only provided fields
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartialUserUpdate'
+      responses:
+        '200':
+          description: User patched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    delete:
+      operationId: deleteUser
+      summary: Delete user
+      description: Permanently delete a user account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID to delete
+        - name: force
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Force delete even if user has dependencies
+      responses:
+        '204':
+          description: User deleted successfully
+        '409':
+          description: Cannot delete user with dependencies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /users/{id}/avatar:
+    post:
+      operationId: uploadUserAvatar
+      summary: Upload user avatar
+      description: Upload a new avatar image for the user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Avatar image file
+              required:
+                - file
+      responses:
+        '200':
+          description: Avatar uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  avatarUrl:
+                    type: string
+                    format: uri
+                required:
+                  - avatarUrl
+  /analytics:
+    get:
+      operationId: getAnalytics
+      summary: Get analytics data
+      description: Retrieve system analytics and metrics
+      responses:
+        '200':
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsData'
+  /health:
+    get:
+      operationId: getHealthCheck
+      summary: Health check
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  services:
+                    type: object
+                    additionalProperties:
+                      type: string
+                required:
+                  - status
+                  - timestamp
+  /search/users:
+    get:
+      operationId: searchUsers
+      summary: Search users with advanced filtering
+      description: Search users with multiple filter options and pagination
+      parameters:
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by name (partial match)
+        - name: email
+          in: query
+          required: false
+          schema:
+            type: string
+            format: email
+          description: Filter by email (partial match)
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, inactive, banned, pending]
+          description: Filter by user status
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [admin, moderator, user, guest]
+          description: Filter by user role
+        - name: min_age
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 13
+          description: Minimum age filter
+        - name: max_age
+          in: query
+          required: false
+          schema:
+            type: integer
+            maximum: 150
+          description: Maximum age filter
+        - name: has_profile
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: Filter users with/without profile
+        - name: tags
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Filter by user tags
+        - name: sort_by
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [name, email, created_at, last_login_at]
+            default: created_at
+          description: Sort field
+        - name: sort_order
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort order
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Results per page
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationMeta'
+                  total_count:
+                    type: integer
+                    description: Total number of matching users
+                  search_meta:
+                    type: object
+                    properties:
+                      query:
+                        type: string
+                      execution_time:
+                        type: number
+                        description: Search execution time in milliseconds
+                      filters:
+                        type: object
+                        additionalProperties:
+                          type: string
+                required:
+                  - data
+                  - pagination
+                  - total_count
+  /users/{user_id}/posts/{post_id}:
+    get:
+      operationId: getUserPost
+      summary: Get specific user post
+      description: Retrieve a specific post by a specific user
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User identifier
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Post identifier
+        - name: include_comments
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Include post comments
+      responses:
+        '200':
+          description: Post found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+    put:
+      operationId: updateUserPost
+      summary: Update user post
+      description: Update a specific post by a specific user
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User identifier
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Post identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostUpdate'
+      responses:
+        '200':
+          description: Post updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+    delete:
+      operationId: deleteUserPost
+      summary: Delete user post
+      description: Delete a specific post by a specific user
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User identifier
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Post identifier
+      responses:
+        '204':
+          description: Post deleted
+  /organizations/{org_id}/teams/{team_id}/members/{member_id}:
+    get:
+      operationId: getTeamMember
+      summary: Get team member details
+      description: Get details of a specific member in a specific team within an organization
+      parameters:
+        - name: org_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Organization identifier
+        - name: team_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Team identifier
+        - name: member_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Member identifier
+        - name: include_permissions
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+          description: Include member permissions
+      responses:
+        '200':
+          description: Team member found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamMember'
+components:
+  schemas:
+    User:
+      type: object
+      description: User entity with comprehensive profile information
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+        email:
+          type: string
+          format: email
+          description: User's email address
+        username:
+          type: string
+          pattern: '^[a-zA-Z0-9_]+$'
+          minLength: 3
+          maxLength: 30
+          description: Unique username
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: User's full name
+        status:
+          type: string
+          enum: [active, inactive, banned, pending]
+          description: Current account status
+        role:
+          type: string
+          enum: [admin, moderator, user, guest]
+          default: user
+          description: User role and permissions level
+        tags:
+          type: array
+          items:
+            type: string
+          description: User tags for categorization
+          example: ['premium', 'beta-tester']
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: Additional flexible metadata
+        profile:
+          type: object
+          properties:
+            bio:
+              type: string
+              maxLength: 500
+              description: User biography
+            age:
+              type: integer
+              minimum: 13
+              maximum: 150
+              description: User age
+            location:
+              type: string
+              description: User's location
+            website:
+              type: string
+              format: uri
+              description: Personal website URL
+            avatar:
+              type: string
+              format: uri
+              description: Avatar image URL
+            preferences:
+              type: object
+              properties:
+                theme:
+                  type: string
+                  enum: [light, dark, auto]
+                  default: auto
+                notifications:
+                  type: boolean
+                  default: true
+                language:
+                  type: string
+                  pattern: '^[a-z]{2}(-[A-Z]{2})?$'
+                  default: en
+          description: Extended user profile information
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last login timestamp
+      required:
+        - id
+        - email
+        - username
+        - name
+        - status
+        - created_at
+        - updated_at
+    CreateUserRequest:
+      type: object
+      description: Request payload for creating a new user
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        username:
+          type: string
+          pattern: '^[a-zA-Z0-9_]+$'
+          minLength: 3
+          maxLength: 30
+          description: Desired username
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: User's full name
+        password:
+          type: string
+          minLength: 8
+          description: Account password (will be hashed)
+        role:
+          type: string
+          enum: [user, moderator]
+          default: user
+          description: Initial user role
+        profile:
+          type: object
+          properties:
+            bio:
+              type: string
+              maxLength: 500
+            age:
+              type: integer
+              minimum: 13
+              maximum: 150
+            location:
+              type: string
+          description: Optional profile information
+      required:
+        - email
+        - username
+        - name
+        - password
+    UpdateUserRequest:
+      type: object
+      description: Request payload for updating user information
+      properties:
+        email:
+          type: string
+          format: email
+          description: Updated email address
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Updated full name
+        status:
+          type: string
+          enum: [active, inactive, banned]
+          description: Updated account status
+        role:
+          type: string
+          enum: [admin, moderator, user, guest]
+          description: Updated user role
+        profile:
+          type: object
+          properties:
+            bio:
+              type: string
+              maxLength: 500
+            age:
+              type: integer
+              minimum: 13
+              maximum: 150
+            location:
+              type: string
+            website:
+              type: string
+              format: uri
+          description: Updated profile information
+      minProperties: 1
+    PartialUserUpdate:
+      type: object
+      description: Partial user update with flexible fields
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive]
+        tags:
+          type: array
+          items:
+            type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+      additionalProperties: {} # empty schema means allow additional properties
+    AsyncResponse:
+      type: object
+      description: Response for asynchronous operations
+      properties:
+        message:
+          type: string
+          description: Status message
+        request_id:
+          type: string
+          format: uuid
+          description: Unique request identifier for tracking
+        estimated_completion:
+          type: string
+          format: date-time
+          description: Estimated completion time
+        status_url:
+          type: string
+          format: uri
+          description: URL to check operation status
+      required:
+        - message
+        - request_id
+    ErrorResponse:
+      type: object
+      description: Standard error response format
+      properties:
+        error:
+          type: string
+          description: Error type identifier
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          additionalProperties:
+            type: string
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+        path:
+          type: string
+          description: Request path that caused the error
+      required:
+        - error
+        - message
+        - timestamp
+    PaginationMeta:
+      type: object
+      description: Pagination metadata
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          description: Current page number
+        limit:
+          type: integer
+          minimum: 1
+          description: Items per page
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of items
+        total_pages:
+          type: integer
+          minimum: 0
+          description: Total number of pages
+        has_next:
+          type: boolean
+          description: Whether there are more pages
+        has_prev:
+          type: boolean
+          description: Whether there are previous pages
+      required:
+        - page
+        - limit
+        - total
+        - total_pages
+        - has_next
+        - has_prev
+    AnalyticsData:
+      type: object
+      description: System analytics and metrics
+      properties:
+        user_stats:
+          type: object
+          properties:
+            total:
+              type: integer
+            active:
+              type: integer
+            new_this_month:
+              type: integer
+          required: [total, active, new_this_month]
+        system_metrics:
+          type: object
+          properties:
+            uptime:
+              type: number
+              description: System uptime in seconds
+            memory_usage:
+              type: number
+              description: Memory usage percentage
+            cpu_usage:
+              type: number
+              description: CPU usage percentage
+          required: [uptime, memory_usage, cpu_usage]
+        generated_at:
+          type: string
+          format: date-time
+          description: When the analytics were generated
+      required:
+        - user_stats
+        - system_metrics
+        - generated_at
+    TeamMember:
+      type: object
+      description: Team member with permissions
+      properties:
+        id:
+          type: string
+          description: Member identifier
+        user_id:
+          type: string
+          description: User identifier
+        role:
+          type: string
+          enum: [admin, maintainer, member, viewer]
+        permissions:
+          type: array
+          items:
+            type: string
+          description: List of permissions
+        joined_at:
+          type: string
+          format: date-time
+          description: When member joined the team
+      required:
+        - id
+        - user_id
+        - role
+        - joined_at
+    Post:
+      type: object
+      description: Blog post or article
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique post identifier
+        title:
+          type: string
+          description: Post title
+        content:
+          type: string
+          description: Post content
+        author_id:
+          type: string
+          format: uuid
+          description: Author's user ID
+        created_at:
+          type: string
+          format: date-time
+          description: Post creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Post last update timestamp
+      required:
+        - id
+        - title
+        - content
+        - author_id
+        - created_at
+        - updated_at
+    PostUpdate:
+      type: object
+      description: Post update payload
+      properties:
+        title:
+          type: string
+          description: Updated post title
+        content:
+          type: string
+          description: Updated post content
+      minProperties: 1

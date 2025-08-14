@@ -16,9 +16,12 @@ permissions:
   actions: write
 
 jobs:
-  build-and-publish:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout
@@ -30,18 +33,76 @@ jobs:
           go-version: '1.24'
           cache: true
 
-      - name: Run Tests
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Tidy Go Modules
+        run: go mod tidy
+
+      - name: Download Go Dependencies
+        run: go mod download
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Run Go Tests
         run: go test ./...
 
-      - name: Build Executables
+      - name: Build Go Executable for Current Platform
         run: |
-          mkdir -p dist/{darwin-x64,darwin-arm64,linux-x64,linux-arm64,win32-x64,win32-arm64}
-          GOOS=darwin GOARCH=amd64  go build -o dist/darwin-x64/fetch-gen ./cmd
-          GOOS=darwin GOARCH=arm64  go build -o dist/darwin-arm64/fetch-gen ./cmd
-          GOOS=linux GOARCH=amd64   go build -o dist/linux-x64/fetch-gen ./cmd
-          GOOS=linux GOARCH=arm64   go build -o dist/linux-arm64/fetch-gen ./cmd
-          GOOS=windows GOARCH=amd64 go build -o dist/win32-x64/fetch-gen.exe ./cmd
-          GOOS=windows GOARCH=arm64 go build -o dist/win32-arm64/fetch-gen.exe ./cmd
+          # Detect actual platform and architecture
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            PLATFORM="linux"
+            BINARY_NAME="fetch-gen"
+          elif [ "${{ matrix.os }}" = "windows-latest" ]; then
+            PLATFORM="win32"
+            BINARY_NAME="fetch-gen.exe"
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            PLATFORM="darwin"
+            BINARY_NAME="fetch-gen"
+          fi
 
-      - name: Workflow Cleanup
-        uses: fgrzl/workflow-cleanup@v1
+          # Detect architecture - GitHub Actions runners are typically x64
+          ARCH="x64"
+          if [ "$(uname -m)" = "arm64" ] || [ "$(uname -m)" = "aarch64" ]; then
+            ARCH="arm64"
+          fi
+
+          PLATFORM_DIR="${PLATFORM}-${ARCH}"
+          echo "Building for platform: ${PLATFORM_DIR}"
+
+          mkdir -p "dist/${PLATFORM_DIR}"
+          go build -o "dist/${PLATFORM_DIR}/${BINARY_NAME}" ./cmd
+        shell: bash
+
+      - name: Build TypeScript Shims
+        run: npm run build
+
+      - name: Show Platform Information
+        run: |
+          echo "Testing on: ${{ matrix.os }}"
+          echo "Node platform: ${{ runner.os }}"
+          echo "System architecture: $(uname -m)"
+          echo "Node process.platform: $(node -e 'console.log(process.platform)')"
+          echo "Node process.arch: $(node -e 'console.log(process.arch)')"
+          echo "Expected platform directory: $(node -e 'console.log(process.platform === \"win32\" ? \"win32\" : process.platform === \"darwin\" ? \"darwin\" : \"linux\")' )-$(node -e 'console.log(process.arch)')"
+          echo "Available binaries:"
+          ls -la dist/ || dir dist
+          echo "Checking for expected binary..."
+          EXPECTED_DIR=$(node -e 'const platformMap = {win32: "win32", darwin: "darwin", linux: "linux"}; const archMap = {x64: "x64", arm64: "arm64"}; const plat = process.platform; const arch = process.arch; console.log(`${platformMap[plat] || plat}-${archMap[arch] || arch}`);')
+          EXPECTED_BINARY=$(node -e 'console.log(process.platform === "win32" ? "fetch-gen.exe" : "fetch-gen")')
+          EXPECTED_PATH="dist/${EXPECTED_DIR}/${EXPECTED_BINARY}"
+          echo "Looking for binary at: ${EXPECTED_PATH}"
+          if [ -f "$EXPECTED_PATH" ]; then
+            echo "✅ Binary found!"
+            ls -la "$EXPECTED_PATH"
+          else
+            echo "❌ Binary not found at expected location"
+          fi
+        shell: bash
+
+      - name: Run TypeScript Tests
+        run: npm test
