@@ -301,6 +301,9 @@ func main() {
 	}
 
 	fmt.Printf("✅ Generated fetch client: %s\n", outputPath)
+
+	// Explicitly exit with success code
+	os.Exit(0)
 }
 
 func resolveType(s *Schema) string {

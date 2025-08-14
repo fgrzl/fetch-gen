@@ -9,26 +9,26 @@ const projectRoot = join(__dirname, '..');
 const testOutput = join(__dirname, 'temp');
 
 // Dynamically determine the Go binary path based on platform and arch
+// This should match exactly how the shim itself determines the path
 function getGoBinaryPath() {
-  const platform = process.platform;
-  const arch = process.arch;
-  let platformDir: string;
-  let binaryName: string;
-  if (platform === 'win32') {
-    platformDir = 'win32-x64'; // You may want to handle arch here if needed
-    binaryName = 'fetch-gen.exe';
-  } else if (platform === 'darwin') {
-    platformDir = 'darwin-x64'; // You may want to handle arch here if needed
-    binaryName = 'fetch-gen';
-  } else if (platform === 'linux') {
-    platformDir = 'linux-x64'; // You may want to handle arch here if needed
-    binaryName = 'fetch-gen';
-  } else {
-    // Default fallback
-    platformDir = `${platform}-${arch}`;
-    binaryName = 'fetch-gen';
-  }
-  return join(projectRoot, 'dist', platformDir, binaryName);
+  const platformMap: Record<string, string> = {
+    win32: 'win32',
+    darwin: 'darwin',
+    linux: 'linux',
+  };
+
+  const archMap: Record<string, string> = {
+    x64: 'x64',
+    arm64: 'arm64',
+  };
+
+  const plat = process.platform;
+  const architecture = process.arch;
+
+  const platformKey = `${platformMap[plat] || plat}-${archMap[architecture] || architecture}`;
+  const binaryName = plat === 'win32' ? 'fetch-gen.exe' : 'fetch-gen';
+  
+  return join(projectRoot, 'dist', platformKey, binaryName);
 }
 
 describe('Shim Integration Tests', () => {
