@@ -17,8 +17,11 @@ permissions:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout
@@ -48,18 +51,35 @@ jobs:
       - name: Run Go Tests
         run: go test ./...
 
-      - name: Build Go Executables
+      - name: Build Go Executable for Current Platform
         run: |
-          mkdir -p dist/{darwin-x64,darwin-arm64,linux-x64,linux-arm64,win32-x64,win32-arm64}
-          GOOS=darwin GOARCH=amd64  go build -o dist/darwin-x64/fetch-gen ./cmd
-          GOOS=darwin GOARCH=arm64  go build -o dist/darwin-arm64/fetch-gen ./cmd
-          GOOS=linux GOARCH=amd64   go build -o dist/linux-x64/fetch-gen ./cmd
-          GOOS=linux GOARCH=arm64   go build -o dist/linux-arm64/fetch-gen ./cmd
-          GOOS=windows GOARCH=amd64 go build -o dist/win32-x64/fetch-gen.exe ./cmd
-          GOOS=windows GOARCH=arm64 go build -o dist/win32-arm64/fetch-gen.exe ./cmd
+          # Create the appropriate platform directory and build for current OS
+          case "${{ matrix.os }}" in
+            ubuntu-latest)
+              mkdir -p dist/linux-x64
+              go build -o dist/linux-x64/fetch-gen ./cmd
+              ;;
+            windows-latest)
+              mkdir -p dist/win32-x64
+              go build -o dist/win32-x64/fetch-gen.exe ./cmd
+              ;;
+            macos-latest)
+              mkdir -p dist/darwin-x64
+              go build -o dist/darwin-x64/fetch-gen ./cmd
+              ;;
+          esac
+        shell: bash
 
       - name: Build TypeScript Shims
         run: npm run build
+
+      - name: Show Platform Information
+        run: |
+          echo "Testing on: ${{ matrix.os }}"
+          echo "Node platform: ${{ runner.os }}"
+          echo "Available binaries:"
+          ls -la dist/ || dir dist
+        shell: bash
 
       - name: Run TypeScript Tests
         run: npm test
