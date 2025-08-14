@@ -216,7 +216,7 @@ describe('Shim Integration Tests', () => {
         if (existsSync(outputPath)) {
           const { readFileSync } = await import('fs');
           const content = readFileSync(outputPath, 'utf-8');
-          expect(content).toContain('export function createApi');
+          expect(content).toContain('export function createAdapter');
           expect(content).toContain('getUsers');
           expect(content).toContain('getUserById');
         }

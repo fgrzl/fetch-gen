@@ -26,8 +26,8 @@ func TestGenerateFullAPIWithComplexModel(t *testing.T) {
 	assert.NoError(t, err, "should generate api.ts")
 	code := string(content)
 
-	// Function structure - should use createApi pattern
-	assert.Contains(t, code, "export function createApi(client: FetchClient)", "should generate createApi function")
+	// Function structure - should use createAdapter pattern
+	assert.Contains(t, code, "export function createAdapter(client: FetchClient)", "should generate createAdapter function")
 	assert.Contains(t, code, "import type { FetchClient, FetchResponse }", "should import FetchResponse type")
 
 	// New query object pattern functions
@@ -47,10 +47,9 @@ func TestGenerateFullAPIWithComplexModel(t *testing.T) {
 	assert.Contains(t, code, "return client.put(`/users/${id}`, body);", "should call PUT with path params")
 	assert.Contains(t, code, "return client.del(url);", "should call DELETE with dynamic URL")
 
-	// URLSearchParams handling
-	assert.Contains(t, code, "const params = new URLSearchParams();", "should use URLSearchParams for query handling")
-	assert.Contains(t, code, "if (query) {", "should conditionally handle query parameters")
-	assert.Contains(t, code, "params.set('", "should set query parameters")
+	// Query parameter handling with imported helper function
+	assert.Contains(t, code, "import { buildQueryParams } from '@fgrzl/fetch';", "should import buildQueryParams from @fgrzl/fetch")
+	assert.Contains(t, code, "const queryString = query ? buildQueryParams(query) : '';", "should use imported buildQueryParams helper")
 
 	// TypeScript model details - check User interface
 	assert.Contains(t, code, `status: "active" | "inactive" | "banned" | "pending";`, "should contain enum with all values")
