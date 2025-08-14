@@ -8,32 +8,62 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, '..');
 const testOutput = join(__dirname, 'temp');
 
+// Dynamically determine the Go binary path based on platform and arch
+function getGoBinaryPath() {
+  const platform = process.platform;
+  const arch = process.arch;
+  let platformDir: string;
+  let binaryName: string;
+  if (platform === 'win32') {
+    platformDir = 'win32-x64'; // You may want to handle arch here if needed
+    binaryName = 'fetch-gen.exe';
+  } else if (platform === 'darwin') {
+    platformDir = 'darwin-x64'; // You may want to handle arch here if needed
+    binaryName = 'fetch-gen';
+  } else if (platform === 'linux') {
+    platformDir = 'linux-x64'; // You may want to handle arch here if needed
+    binaryName = 'fetch-gen';
+  } else {
+    // Default fallback
+    platformDir = `${platform}-${arch}`;
+    binaryName = 'fetch-gen';
+  }
+  return join(projectRoot, 'dist', platformDir, binaryName);
+}
+
 describe('Shim Integration Tests', () => {
   beforeAll(async () => {
     // Check if shims exist, build them if not
     const cjsExists = existsSync(join(projectRoot, 'dist/shim.cjs'));
     const mjsExists = existsSync(join(projectRoot, 'dist/shim.mjs'));
-    
+
     if (!cjsExists || !mjsExists) {
       const buildResult = spawnSync('npm', ['run', 'build:shims'], {
         cwd: projectRoot,
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
-      
+
       if (buildResult.status !== 0) {
-        const errorMsg = buildResult.stderr?.toString() || buildResult.stdout?.toString() || 'Unknown error';
+        const errorMsg =
+          buildResult.stderr?.toString() ||
+          buildResult.stdout?.toString() ||
+          'Unknown error';
         throw new Error(`Failed to build shims: ${errorMsg}`);
       }
     }
 
     // Ensure Go binary exists
-    const goBinaryPath = join(projectRoot, 'dist/win32-x64/fetch-gen.exe');
+    const goBinaryPath = getGoBinaryPath();
     if (!existsSync(goBinaryPath)) {
-      const goBuildResult = spawnSync('go', ['build', '-o', goBinaryPath, './cmd'], {
-        cwd: projectRoot,
-        stdio: 'pipe',
-        shell: true
-      });
+      const goBuildResult = spawnSync(
+        'go',
+        ['build', '-o', goBinaryPath, './cmd'],
+        {
+          cwd: projectRoot,
+          stdio: 'pipe',
+          shell: true,
+        }
+      );
 
       if (goBuildResult.status !== 0) {
         console.warn('Go binary build failed - some tests may be skipped');
@@ -102,101 +132,134 @@ describe('Shim Integration Tests', () => {
   describe('Platform Detection', () => {
     it('should handle platform detection correctly', () => {
       const cjsPath = join(projectRoot, 'dist/shim.cjs');
-      
+
       // Run shim with --help to test basic functionality
       const result = spawnSync('node', [cjsPath, '--help'], {
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
 
       // Should exit with non-zero (help/usage), but not crash
       expect(result.status).not.toBe(0);
-      const output = result.stderr?.toString() || result.stdout?.toString() || '';
-      
+      const output =
+        result.stderr?.toString() || result.stdout?.toString() || '';
+
       // Should either show usage (if binary found) or platform error (if not found)
       const hasUsage = output.includes('Usage:');
       const hasPlatformError = output.includes('No binary found for platform');
-      
+
       expect(hasUsage || hasPlatformError).toBe(true);
     });
   });
 
   describe('Real Binary Integration', () => {
-    const goBinaryPath = join(projectRoot, 'dist/win32-x64/fetch-gen.exe');
-    
-    it.skipIf(!existsSync(goBinaryPath))('should execute real Go binary through CJS shim', () => {
-      const cjsPath = join(projectRoot, 'dist/shim.cjs');
-      const inputPath = join(projectRoot, 'openapi-test.yaml');
-      const outputPath = join(testOutput, 'test-output.ts');
+    const goBinaryPath = getGoBinaryPath();
 
-      const result = spawnSync('node', [cjsPath, '--input', inputPath, '--output', outputPath], {
-        stdio: 'pipe'
-      });
+    it.skipIf(!existsSync(goBinaryPath))(
+      'should execute real Go binary through CJS shim',
+      () => {
+        const cjsPath = join(projectRoot, 'dist/shim.cjs');
+        const inputPath = join(projectRoot, 'openapi-test.yaml');
+        const outputPath = join(testOutput, 'test-output.ts');
 
-      expect(result.status).toBe(0);
-      expect(existsSync(outputPath)).toBe(true);
-    });
+        const result = spawnSync(
+          'node',
+          [cjsPath, '--input', inputPath, '--output', outputPath],
+          {
+            stdio: 'pipe',
+          }
+        );
 
-    it.skipIf(!existsSync(goBinaryPath))('should execute real Go binary through ESM shim', () => {
-      const mjsPath = join(projectRoot, 'dist/shim.mjs');
-      const inputPath = join(projectRoot, 'openapi-test.yaml');
-      const outputPath = join(testOutput, 'test-output-esm.ts');
-
-      const result = spawnSync('node', [mjsPath, '--input', inputPath, '--output', outputPath], {
-        stdio: 'pipe'
-      });
-
-      expect(result.status).toBe(0);
-      expect(existsSync(outputPath)).toBe(true);
-    });
-
-    it.skipIf(!existsSync(goBinaryPath))('should pass arguments correctly to Go binary', async () => {
-      const cjsPath = join(projectRoot, 'dist/shim.cjs');
-      const inputPath = join(projectRoot, 'openapi-test.yaml');
-      const outputPath = join(testOutput, 'test-args.ts');
-
-      const result = spawnSync('node', [cjsPath, '--input', inputPath, '--output', outputPath], {
-        stdio: 'pipe'
-      });
-
-      expect(result.status).toBe(0);
-      
-      // Verify the generated file has expected content
-      if (existsSync(outputPath)) {
-        const { readFileSync } = await import('fs');
-        const content = readFileSync(outputPath, 'utf-8');
-        expect(content).toContain('export function createApi');
-        expect(content).toContain('getUsers');
-        expect(content).toContain('getUserById');
+        expect(result.status).toBe(0);
+        expect(existsSync(outputPath)).toBe(true);
       }
-    });
+    );
+
+    it.skipIf(!existsSync(goBinaryPath))(
+      'should execute real Go binary through ESM shim',
+      () => {
+        const mjsPath = join(projectRoot, 'dist/shim.mjs');
+        const inputPath = join(projectRoot, 'openapi-test.yaml');
+        const outputPath = join(testOutput, 'test-output-esm.ts');
+
+        const result = spawnSync(
+          'node',
+          [mjsPath, '--input', inputPath, '--output', outputPath],
+          {
+            stdio: 'pipe',
+          }
+        );
+
+        expect(result.status).toBe(0);
+        expect(existsSync(outputPath)).toBe(true);
+      }
+    );
+
+    it.skipIf(!existsSync(goBinaryPath))(
+      'should pass arguments correctly to Go binary',
+      async () => {
+        const cjsPath = join(projectRoot, 'dist/shim.cjs');
+        const inputPath = join(projectRoot, 'openapi-test.yaml');
+        const outputPath = join(testOutput, 'test-args.ts');
+
+        const result = spawnSync(
+          'node',
+          [cjsPath, '--input', inputPath, '--output', outputPath],
+          {
+            stdio: 'pipe',
+          }
+        );
+
+        expect(result.status).toBe(0);
+
+        // Verify the generated file has expected content
+        if (existsSync(outputPath)) {
+          const { readFileSync } = await import('fs');
+          const content = readFileSync(outputPath, 'utf-8');
+          expect(content).toContain('export function createApi');
+          expect(content).toContain('getUsers');
+          expect(content).toContain('getUserById');
+        }
+      }
+    );
   });
 
   describe('Error Handling', () => {
     it('should exit with error code when Go binary fails', () => {
       const cjsPath = join(projectRoot, 'dist/shim.cjs');
-      
+
       // Pass invalid arguments to cause Go binary to fail
-      const result = spawnSync('node', [cjsPath, '--input', 'nonexistent-file.yaml', '--output', '/invalid/path/output.ts'], {
-        stdio: 'pipe'
-      });
+      const result = spawnSync(
+        'node',
+        [
+          cjsPath,
+          '--input',
+          'nonexistent-file.yaml',
+          '--output',
+          '/invalid/path/output.ts',
+        ],
+        {
+          stdio: 'pipe',
+        }
+      );
 
       expect(result.status).not.toBe(0);
     });
 
     it('should show appropriate message when binary not found', () => {
       const cjsPath = join(projectRoot, 'dist/shim.cjs');
-      
+
       const result = spawnSync('node', [cjsPath, 'test'], {
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
 
       expect(result.status).toBe(1);
-      const output = result.stderr?.toString() || result.stdout?.toString() || '';
-      
+      const output =
+        result.stderr?.toString() || result.stdout?.toString() || '';
+
       // Should either show usage (if binary found) or platform error (if not found)
       const hasUsage = output.includes('Usage:');
       const hasPlatformError = output.includes('No binary found for platform');
-      
+
       expect(hasUsage || hasPlatformError).toBe(true);
     });
   });
@@ -211,19 +274,21 @@ describe('Shim Integration Tests', () => {
         const result = spawnSync('node', [shimPath, '--help'], { stdio: 'pipe' });
         process.exit(result.status === 0 ? 0 : 1);
       `;
-      
+
       const result = spawnSync('node', ['-e', testScript], {
-        stdio: 'pipe'
+        stdio: 'pipe',
       });
 
       // Should fail gracefully (binary not found) rather than with module errors
       expect(result.stderr?.toString() || '').not.toContain('ERR_REQUIRE_ESM');
-      expect(result.stderr?.toString() || '').not.toContain('Cannot use import statement');
+      expect(result.stderr?.toString() || '').not.toContain(
+        'Cannot use import statement'
+      );
     });
 
     it('ESM shim should work with dynamic import()', async () => {
       const mjsPath = join(projectRoot, 'dist/shim.mjs');
-      
+
       // Test that the ESM shim can be imported (though not executed without binary)
       const testScript = `
         import('${mjsPath}').then(() => {
@@ -234,14 +299,20 @@ describe('Shim Integration Tests', () => {
           process.exit(1);
         });
       `;
-      
-      const result = spawnSync('node', ['--input-type=module', '-e', testScript], {
-        stdio: 'pipe'
-      });
+
+      const result = spawnSync(
+        'node',
+        ['--input-type=module', '-e', testScript],
+        {
+          stdio: 'pipe',
+        }
+      );
 
       // The import should succeed even if execution fails due to missing binary
       expect(result.stderr?.toString() || '').not.toContain('SyntaxError');
-      expect(result.stderr?.toString() || '').not.toContain('ERR_MODULE_NOT_FOUND');
+      expect(result.stderr?.toString() || '').not.toContain(
+        'ERR_MODULE_NOT_FOUND'
+      );
     });
   });
 });

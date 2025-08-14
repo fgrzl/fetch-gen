@@ -562,7 +562,7 @@ components:
           items:
             type: string
           description: User tags for categorization
-          example: ["premium", "beta-tester"]
+          example: ['premium', 'beta-tester']
         metadata:
           type: object
           additionalProperties:
@@ -728,7 +728,7 @@ components:
           type: object
           additionalProperties:
             type: string
-      additionalProperties: {}  # empty schema means allow additional properties
+      additionalProperties: {} # empty schema means allow additional properties
     AsyncResponse:
       type: object
       description: Response for asynchronous operations
