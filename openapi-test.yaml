@@ -92,7 +92,7 @@ paths:
             type: string
             format: uuid
           description: Unique user identifier
-        - name: includeProfile
+        - name: include_profile
           in: query
           required: false
           schema:
@@ -276,12 +276,6 @@ paths:
       summary: Search users with advanced filtering
       description: Search users with multiple filter options and pagination
       parameters:
-        - name: query
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Search query string
         - name: name
           in: query
           required: false
@@ -309,21 +303,21 @@ paths:
             type: string
             enum: [admin, moderator, user, guest]
           description: Filter by user role
-        - name: minAge
+        - name: min_age
           in: query
           required: false
           schema:
             type: integer
             minimum: 13
           description: Minimum age filter
-        - name: maxAge
+        - name: max_age
           in: query
           required: false
           schema:
             type: integer
             maximum: 150
           description: Maximum age filter
-        - name: hasProfile
+        - name: has_profile
           in: query
           required: false
           schema:
@@ -337,15 +331,15 @@ paths:
             items:
               type: string
           description: Filter by user tags
-        - name: sortBy
+        - name: sort_by
           in: query
           required: false
           schema:
             type: string
-            enum: [name, email, createdAt, lastLoginAt]
-            default: createdAt
+            enum: [name, email, created_at, last_login_at]
+            default: created_at
           description: Sort field
-        - name: sortOrder
+        - name: sort_order
           in: query
           required: false
           schema:
@@ -384,15 +378,15 @@ paths:
                       $ref: '#/components/schemas/User'
                   pagination:
                     $ref: '#/components/schemas/PaginationMeta'
-                  totalCount:
+                  total_count:
                     type: integer
                     description: Total number of matching users
-                  searchMeta:
+                  search_meta:
                     type: object
                     properties:
                       query:
                         type: string
-                      executionTime:
+                      execution_time:
                         type: number
                         description: Search execution time in milliseconds
                       filters:
@@ -402,28 +396,28 @@ paths:
                 required:
                   - data
                   - pagination
-                  - totalCount
-  /users/{userId}/posts/{postId}:
+                  - total_count
+  /users/{user_id}/posts/{post_id}:
     get:
       operationId: getUserPost
       summary: Get specific user post
       description: Retrieve a specific post by a specific user
       parameters:
-        - name: userId
+        - name: user_id
           in: path
           required: true
           schema:
             type: string
             format: uuid
           description: User identifier
-        - name: postId
+        - name: post_id
           in: path
           required: true
           schema:
             type: string
             format: uuid
           description: Post identifier
-        - name: includeComments
+        - name: include_comments
           in: query
           required: false
           schema:
@@ -442,14 +436,14 @@ paths:
       summary: Update user post
       description: Update a specific post by a specific user
       parameters:
-        - name: userId
+        - name: user_id
           in: path
           required: true
           schema:
             type: string
             format: uuid
           description: User identifier
-        - name: postId
+        - name: post_id
           in: path
           required: true
           schema:
@@ -474,14 +468,14 @@ paths:
       summary: Delete user post
       description: Delete a specific post by a specific user
       parameters:
-        - name: userId
+        - name: user_id
           in: path
           required: true
           schema:
             type: string
             format: uuid
           description: User identifier
-        - name: postId
+        - name: post_id
           in: path
           required: true
           schema:
@@ -491,31 +485,31 @@ paths:
       responses:
         '204':
           description: Post deleted
-  /organizations/{orgId}/teams/{teamId}/members/{memberId}:
+  /organizations/{org_id}/teams/{team_id}/members/{member_id}:
     get:
       operationId: getTeamMember
       summary: Get team member details
       description: Get details of a specific member in a specific team within an organization
       parameters:
-        - name: orgId
+        - name: org_id
           in: path
           required: true
           schema:
             type: string
           description: Organization identifier
-        - name: teamId
+        - name: team_id
           in: path
           required: true
           schema:
             type: string
           description: Team identifier
-        - name: memberId
+        - name: member_id
           in: path
           required: true
           schema:
             type: string
           description: Member identifier
-        - name: includePermissions
+        - name: include_permissions
           in: query
           required: false
           schema:
@@ -612,15 +606,15 @@ components:
                   pattern: '^[a-z]{2}(-[A-Z]{2})?$'
                   default: en
           description: Extended user profile information
-        createdAt:
+        created_at:
           type: string
           format: date-time
           description: Account creation timestamp
-        updatedAt:
+        updated_at:
           type: string
           format: date-time
           description: Last update timestamp
-        lastLoginAt:
+        last_login_at:
           type: string
           format: date-time
           nullable: true
@@ -631,8 +625,8 @@ components:
         - username
         - name
         - status
-        - createdAt
-        - updatedAt
+        - created_at
+        - updated_at
     CreateUserRequest:
       type: object
       description: Request payload for creating a new user
@@ -742,21 +736,21 @@ components:
         message:
           type: string
           description: Status message
-        requestId:
+        request_id:
           type: string
           format: uuid
           description: Unique request identifier for tracking
-        estimatedCompletion:
+        estimated_completion:
           type: string
           format: date-time
           description: Estimated completion time
-        statusUrl:
+        status_url:
           type: string
           format: uri
           description: URL to check operation status
       required:
         - message
-        - requestId
+        - request_id
     ErrorResponse:
       type: object
       description: Standard error response format
@@ -799,58 +793,58 @@ components:
           type: integer
           minimum: 0
           description: Total number of items
-        totalPages:
+        total_pages:
           type: integer
           minimum: 0
           description: Total number of pages
-        hasNext:
+        has_next:
           type: boolean
           description: Whether there are more pages
-        hasPrev:
+        has_prev:
           type: boolean
           description: Whether there are previous pages
       required:
         - page
         - limit
         - total
-        - totalPages
-        - hasNext
-        - hasPrev
+        - total_pages
+        - has_next
+        - has_prev
     AnalyticsData:
       type: object
       description: System analytics and metrics
       properties:
-        userStats:
+        user_stats:
           type: object
           properties:
             total:
               type: integer
             active:
               type: integer
-            newThisMonth:
+            new_this_month:
               type: integer
-          required: [total, active, newThisMonth]
-        systemMetrics:
+          required: [total, active, new_this_month]
+        system_metrics:
           type: object
           properties:
             uptime:
               type: number
               description: System uptime in seconds
-            memoryUsage:
+            memory_usage:
               type: number
               description: Memory usage percentage
-            cpuUsage:
+            cpu_usage:
               type: number
               description: CPU usage percentage
-          required: [uptime, memoryUsage, cpuUsage]
-        generatedAt:
+          required: [uptime, memory_usage, cpu_usage]
+        generated_at:
           type: string
           format: date-time
           description: When the analytics were generated
       required:
-        - userStats
-        - systemMetrics
-        - generatedAt
+        - user_stats
+        - system_metrics
+        - generated_at
     TeamMember:
       type: object
       description: Team member with permissions
@@ -858,7 +852,7 @@ components:
         id:
           type: string
           description: Member identifier
-        userId:
+        user_id:
           type: string
           description: User identifier
         role:
@@ -869,12 +863,56 @@ components:
           items:
             type: string
           description: List of permissions
-        joinedAt:
+        joined_at:
           type: string
           format: date-time
           description: When member joined the team
       required:
         - id
-        - userId
+        - user_id
         - role
-        - joinedAt
+        - joined_at
+    Post:
+      type: object
+      description: Blog post or article
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique post identifier
+        title:
+          type: string
+          description: Post title
+        content:
+          type: string
+          description: Post content
+        author_id:
+          type: string
+          format: uuid
+          description: Author's user ID
+        created_at:
+          type: string
+          format: date-time
+          description: Post creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Post last update timestamp
+      required:
+        - id
+        - title
+        - content
+        - author_id
+        - created_at
+        - updated_at
+    PostUpdate:
+      type: object
+      description: Post update payload
+      properties:
+        title:
+          type: string
+          description: Updated post title
+        content:
+          type: string
+          description: Updated post content
+      minProperties: 1

@@ -36,8 +36,8 @@ func TestGenerateFullAPIWithComplexModel(t *testing.T) {
 	assert.Contains(t, code, "deleteUser: (id: string, query?: { force?: boolean })", "should generate deleteUser method with query object")
 
 	// Multi-parameter path support
-	assert.Contains(t, code, "getUserPost: (userId: string, postId: string, query?: { includeComments?: boolean })", "should handle multi-parameter paths with query objects")
-	assert.Contains(t, code, "getTeamMember: (orgId: string, teamId: string, memberId: string", "should handle 3-parameter paths")
+	assert.Contains(t, code, "getUserPost: (user_id: string, post_id: string, query?: { include_comments?: boolean })", "should handle multi-parameter paths with query objects")
+	assert.Contains(t, code, "getTeamMember: (org_id: string, team_id: string, member_id: string", "should handle 3-parameter paths")
 
 	// Dynamic URL construction with query parameters
 	assert.Contains(t, code, "const url = `/users` + (queryString ? '?' + queryString : '');", "should build dynamic URLs for query params")

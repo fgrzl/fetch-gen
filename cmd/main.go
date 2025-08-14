@@ -383,7 +383,6 @@ export function createApi(client: FetchClient) {
 	return {
 		{{- range $i, $op := .Ops}}
 		{{if $i}}
-
 		{{end}}/**
 		 * {{if $op.Description}}{{$op.Description}}{{else}}{{$op.Method | upper}} {{$op.DisplayPath}}{{end}}
 		{{- range $param := $op.PathParams}}
@@ -418,11 +417,7 @@ export function createApi(client: FetchClient) {
 }
 
 {{range $name, $schema := .Schemas}}
-{{- if $schema.Description}}
-/** {{$schema.Description}} */
-{{else}}
-/** {{$name}} schema */
-{{end}}
+{{if $schema.Description}}/** {{$schema.Description}} */{{else}}/** {{$name}} schema */{{end}}
 export interface {{$name}} {
 {{- range $prop, $def := $schema.Properties }}
 	{{- if $def.Description}}
