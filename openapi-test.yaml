@@ -1,0 +1,166 @@
+openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+  description: Unified test specification for fetch-gen testing
+paths:
+  /users:
+    get:
+      operationId: getUsers
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    post:
+      operationId: createUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accepted'
+  /users/{id}:
+    get:
+      operationId: getUserById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    put:
+      operationId: updateUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    delete:
+      operationId: deleteUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No Content
+components:
+  schemas:
+    User:
+      type: object
+      description: User entity
+      properties:
+        id:
+          type: string
+          description: Unique user identifier
+        name:
+          type: string
+          description: User's full name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        status:
+          type: string
+          enum: [active, inactive, banned]
+          description: User account status
+        tags:
+          type: array
+          items:
+            type: string
+          description: User tags
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: Additional user metadata
+        profile:
+          type: object
+          properties:
+            bio:
+              type: string
+              description: User biography
+            age:
+              type: integer
+              minimum: 0
+              maximum: 150
+              description: User age
+    CreateUserRequest:
+      type: object
+      required:
+        - name
+        - email
+      properties:
+        name:
+          type: string
+          description: User's full name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        status:
+          type: string
+          enum: [active, inactive]
+          default: active
+          description: Initial user status
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: User's full name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        status:
+          type: string
+          enum: [active, inactive, banned]
+          description: User account status
+    Accepted:
+      type: object
+      description: Async operation accepted response
+      properties:
+        message:
+          type: string
+        requestId:
+          type: string

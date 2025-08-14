@@ -23,12 +23,17 @@
     "dist"
   ],
   "scripts": {
+    "build:shims": "tsup",
+    "clean": "rimraf dist node_modules",
+    "test": "vitest run",
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "prettier": "^3.6.2"
-  },
-  "dependencies": {
-    "@fgrzl/fetch": "^1.1.0-alpha.3"
+    "@types/node": "^24.2.1",
+    "prettier": "^3.6.2",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   }
 }

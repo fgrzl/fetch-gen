@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { spawnSync } from "child_process";
 import { existsSync } from "fs";
 import { arch, platform } from "os";
@@ -8,13 +6,13 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const platformMap = {
+const platformMap: Record<string, string> = {
   win32: "win32",
   darwin: "darwin",
   linux: "linux"
 };
 
-const archMap = {
+const archMap: Record<string, string> = {
   x64: "x64",
   arm64: "arm64"
 };
