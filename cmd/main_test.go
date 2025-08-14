@@ -19,7 +19,8 @@ func TestGenerateFullAPIWithComplexModel(t *testing.T) {
 		"--output", outputPath,
 	}
 
-	main()
+	err := run()
+	assert.NoError(t, err, "should run successfully")
 
 	content, err := os.ReadFile(outputPath)
 	assert.NoError(t, err, "should generate api.ts")

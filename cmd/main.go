@@ -114,25 +114,33 @@ type NamedOperation struct {
 }
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
+func run() error {
 	if len(os.Args) < 5 || os.Args[1] != "--input" || os.Args[3] != "--output" {
 		fmt.Println("Usage: fetch-gen --input openapi.yaml --output ./src/api.ts [--instance ./path/to/client]")
-		os.Exit(1)
+		return fmt.Errorf("invalid arguments")
 	}
 
 	inputPath := os.Args[2]
 	inputPath, err := filepath.Abs(inputPath)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to get absolute path for input: %w", err)
 	}
 
 	outputPath := os.Args[4]
 	outputPath, err = filepath.Abs(outputPath)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to get absolute path for output: %w", err)
 	}
 	err = os.MkdirAll(filepath.Dir(outputPath), 0755)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
 	instance := "@fgrzl/fetch"
@@ -142,21 +150,21 @@ func main() {
 
 	data, err := os.ReadFile(inputPath)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to read input file: %w", err)
 	}
 
 	var api OpenAPI
 	switch ext := strings.ToLower(filepath.Ext(inputPath)); ext {
 	case ".yaml", ".yml":
 		if err := yaml.Unmarshal(data, &api); err != nil {
-			panic(err)
+			return fmt.Errorf("failed to parse YAML: %w", err)
 		}
 	case ".json":
 		if err := json.Unmarshal(data, &api); err != nil {
-			panic(err)
+			return fmt.Errorf("failed to parse JSON: %w", err)
 		}
 	default:
-		panic("unsupported file type (must be .yaml or .json)")
+		return fmt.Errorf("unsupported file type (must be .yaml or .json)")
 	}
 
 	var ops []NamedOperation
@@ -231,7 +239,7 @@ func main() {
 
 	f, err := os.Create(outputPath)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to create output file: %w", err)
 	}
 	defer f.Close()
 
@@ -297,13 +305,11 @@ func main() {
 		"Instance": instance,
 	})
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to execute template: %w", err)
 	}
 
 	fmt.Printf("✅ Generated fetch client: %s\n", outputPath)
-
-	// Explicitly exit with success code
-	os.Exit(0)
+	return nil
 }
 
 func resolveType(s *Schema) string {

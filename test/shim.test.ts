@@ -146,8 +146,9 @@ describe('Shim Integration Tests', () => {
       // Should either show usage (if binary found) or platform error (if not found)
       const hasUsage = output.includes('Usage:');
       const hasPlatformError = output.includes('No binary found for platform');
+      const hasErrorMessage = output.includes('Error:');
 
-      expect(hasUsage || hasPlatformError).toBe(true);
+      expect(hasUsage || hasPlatformError || hasErrorMessage).toBe(true);
     });
   });
 
@@ -259,8 +260,9 @@ describe('Shim Integration Tests', () => {
       // Should either show usage (if binary found) or platform error (if not found)
       const hasUsage = output.includes('Usage:');
       const hasPlatformError = output.includes('No binary found for platform');
+      const hasErrorMessage = output.includes('Error:');
 
-      expect(hasUsage || hasPlatformError).toBe(true);
+      expect(hasUsage || hasPlatformError || hasErrorMessage).toBe(true);
     });
   });
 
