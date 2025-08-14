@@ -27,7 +27,7 @@ function getGoBinaryPath() {
 
   const platformKey = `${platformMap[plat] || plat}-${archMap[architecture] || architecture}`;
   const binaryName = plat === 'win32' ? 'fetch-gen.exe' : 'fetch-gen';
-  
+
   return join(projectRoot, 'dist', platformKey, binaryName);
 }
 
