@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -111,6 +112,13 @@ type NamedOperation struct {
 	RequestType  string
 	ResponseType string
 	Description  string
+}
+
+// TemplateSchema holds schema plus ordered property keys for deterministic iteration
+type TemplateSchema struct {
+	Name     string
+	Schema   *Schema
+	PropKeys []string
 }
 
 func main() {
@@ -237,6 +245,14 @@ func run() error {
 		}
 	}
 
+	// Ensure deterministic ordering: first by path (DisplayPath), then by operation ID
+	sort.SliceStable(ops, func(i, j int) bool {
+		if ops[i].DisplayPath == ops[j].DisplayPath {
+			return ops[i].ID < ops[j].ID
+		}
+		return ops[i].DisplayPath < ops[j].DisplayPath
+	})
+
 	f, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
@@ -298,11 +314,31 @@ func run() error {
 		},
 	}
 
+	// Build sorted schemas with deterministic property ordering
+	sortedSchemaNames := []string{}
+	for name := range api.Components.Schemas {
+		sortedSchemaNames = append(sortedSchemaNames, name)
+	}
+	sort.Strings(sortedSchemaNames)
+
+	sortedSchemas := []TemplateSchema{}
+	for _, name := range sortedSchemaNames {
+		s := api.Components.Schemas[name]
+		propKeys := []string{}
+		if s != nil && s.Properties != nil {
+			for pk := range s.Properties {
+				propKeys = append(propKeys, pk)
+			}
+			sort.Strings(propKeys)
+		}
+		sortedSchemas = append(sortedSchemas, TemplateSchema{Name: name, Schema: s, PropKeys: propKeys})
+	}
+
 	tmpl := template.Must(template.New("api").Funcs(funcs).Parse(apiTemplate))
 	err = tmpl.Execute(f, map[string]any{
-		"Schemas":  api.Components.Schemas,
-		"Ops":      ops,
-		"Instance": instance,
+		"SortedSchemas": sortedSchemas,
+		"Ops":           ops,
+		"Instance":      instance,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to execute template: %w", err)
@@ -354,7 +390,14 @@ func resolveType(s *Schema) string {
 			return "Record<string, any>"
 		}
 		props := []string{}
-		for name, prop := range s.Properties {
+		// iterate properties in sorted order for deterministic output
+		propKeys := []string{}
+		for name := range s.Properties {
+			propKeys = append(propKeys, name)
+		}
+		sort.Strings(propKeys)
+		for _, name := range propKeys {
+			prop := s.Properties[name]
 			props = append(props, fmt.Sprintf("%s: %s", name, resolveType(prop)))
 		}
 		return "{ " + strings.Join(props, "; ") + " }"
@@ -426,17 +469,20 @@ export function createAdapter(client: FetchClient): {
 	};
 }
 
-{{range $name, $schema := .Schemas}}
-{{if $schema.Description}}/** {{$schema.Description}} */{{else}}/** {{$name}} schema */{{end}}
+{{- range $i, $s := .SortedSchemas }}
+{{- $name := $s.Name }}
+{{- $schema := $s.Schema }}
+{{- if $schema.Description }}/** {{$schema.Description}} */{{ else }}/** {{$name}} schema */{{ end }}
 export interface {{$name}} {
-{{- range $prop, $def := $schema.Properties }}
-	{{- if $def.Description}}
+{{- range $idx, $prop := $s.PropKeys }}
+	{{- $def := index $schema.Properties $prop }}
+	{{- if $def.Description }}
 	/** {{ $def.Description }} */
-	{{- end}}
-	{{- $isRequired := contains $schema.Required $prop}}
+	{{- end }}
+	{{- $isRequired := contains $schema.Required $prop }}
 	{{$prop}}{{if not $isRequired}}?{{end}}: {{ tsType $def }};
 {{- end }}
 }
 
-{{end}}
+{{- end }}
 `
