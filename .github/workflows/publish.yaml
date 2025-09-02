@@ -1,25 +1,28 @@
-name: Release
+name: Publish
 
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
+  packages: read
 
 jobs:
-  release:
+  TagAndPublish:
+    name: Tag and Publish
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
-      - name: Checkout develop branch
+      - name: Checkout Full History
         uses: actions/checkout@v5
         with:
-          ref: develop
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -31,7 +34,14 @@ jobs:
           go-version: '1.24'
           cache: true
 
-      - name: Install dependencies
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v4.1.0
+
+      - name: Calculate Version
+        id: version
+        uses: gittools/actions/gitversion/execute@v4.1.0
+
+      - name: Install Dependencies
         run: npm ci
 
       - name: Tidy Go Modules
@@ -39,6 +49,9 @@ jobs:
 
       - name: Download Go Dependencies
         run: go mod download
+
+      - name: Check Formatting
+        run: npm run format -- --check
 
       - name: Run Go Tests
         run: go test ./...
@@ -59,33 +72,19 @@ jobs:
       - name: Run TypeScript Tests
         run: npm test
 
-      - name: Configure Git
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
+      - name: Tag Commit
+        if: github.ref_type != 'tag'
+        uses: fgrzl/actions/tag-commit@v0.0.5
+        with:
+          tag: ${{ steps.version.outputs.semVer }}
 
-      - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v4.1.0
+      - name: Publish NPM
+        if: github.ref_type == 'tag' || github.ref == 'refs/heads/develop'
+        uses: fgrzl/actions/publish-npm@v0.0.5
+        with:
+          npm-token: ${{ secrets.NPM_TOKEN }}
+          label: ${{ steps.version.outputs.PreReleaseLabel }}
+          version: ${{ steps.version.outputs.semVer }}
 
-      - name: Determine Version with GitVersion
-        id: gitversion
-        uses: gittools/actions/gitversion/execute@v4.1.0
-
-      - name: Merge to main
-        run: |
-          git checkout main
-          git pull origin main
-          git merge --no-ff develop -m "Release v${{ steps.gitversion.outputs.majorMinorPatch }}"
-          git push origin main
-
-      - name: Create Git tag
-        run: |
-          git tag -a v${{ steps.gitversion.outputs.majorMinorPatch }} -m "Release v${{ steps.gitversion.outputs.majorMinorPatch }}"
-          git push origin v${{ steps.gitversion.outputs.majorMinorPatch }}
-
-      - name: Merge back to develop
-        run: |
-          git checkout develop
-          git pull origin develop
-          git merge --no-ff main -m "Merge main back to develop after release v${{ steps.gitversion.outputs.majorMinorPatch }}"
-          git push origin develop
+      - name: Prune Pre-release Tags
+        uses: fgrzl/actions/prune-tags@v0.0.5

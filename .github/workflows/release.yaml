@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout develop branch
+        uses: actions/checkout@v5
+        with:
+          ref: develop
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Ensure we are on develop
+        run: |
+          current_branch=$(git rev-parse --abbrev-ref HEAD)
+          echo "Current branch: $current_branch"
+          if [ "$current_branch" != "develop" ]; then
+            echo "Error: release workflow must run on the 'develop' branch."
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Tidy Go Modules
+        run: go mod tidy
+
+      - name: Download Go Dependencies
+        run: go mod download
+
+      - name: Run Go Tests
+        run: go test ./...
+
+      - name: Build Go Executables
+        run: |
+          mkdir -p dist/{darwin-x64,darwin-arm64,linux-x64,linux-arm64,win32-x64,win32-arm64}
+          GOOS=darwin GOARCH=amd64  go build -o dist/darwin-x64/fetch-gen ./cmd
+          GOOS=darwin GOARCH=arm64  go build -o dist/darwin-arm64/fetch-gen ./cmd
+          GOOS=linux GOARCH=amd64   go build -o dist/linux-x64/fetch-gen ./cmd
+          GOOS=linux GOARCH=arm64   go build -o dist/linux-arm64/fetch-gen ./cmd
+          GOOS=windows GOARCH=amd64 go build -o dist/win32-x64/fetch-gen.exe ./cmd
+          GOOS=windows GOARCH=arm64 go build -o dist/win32-arm64/fetch-gen.exe ./cmd
+
+      - name: Build TypeScript Shims
+        run: npm run build
+
+      - name: Run TypeScript Tests
+        run: npm test
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v4.1.0
+
+      - name: Determine Version with GitVersion
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v4.1.0
+
+      - name: Merge to main
+        run: |
+          git checkout main
+          git pull origin main
+          git merge --no-ff develop -m "Release v${{ steps.gitversion.outputs.majorMinorPatch }}"
+          git push origin main
+
+      - name: Create Git tag
+        run: |
+          git tag -a v${{ steps.gitversion.outputs.majorMinorPatch }} -m "Release v${{ steps.gitversion.outputs.majorMinorPatch }}"
+          git push origin v${{ steps.gitversion.outputs.majorMinorPatch }}
+
+      - name: Merge back to develop
+        run: |
+          git checkout develop
+          git pull origin develop
+          git merge --no-ff main -m "Merge main back to develop after release v${{ steps.gitversion.outputs.majorMinorPatch }}"
+          git push origin develop
