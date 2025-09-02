@@ -8,106 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const complexSpec = `
-openapi: 3.0.0
-info:
-  title: Advanced API
-  version: 1.0.0
-paths:
-  /users:
-    get:
-      operationId: getUser
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
-    post:
-      operationId: createUser
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/User'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
-  /users/{id}:
-    put:
-      operationId: updateUser
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/User'
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
-    delete:
-      operationId: deleteUser
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Deleted
-components:
-  schemas:
-    User:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        status:
-          type: string
-          enum: [active, inactive, banned]
-        tags:
-          type: array
-          items:
-            type: string
-        metadata:
-          type: object
-          additionalProperties:
-            type: string
-        profile:
-          type: object
-          properties:
-            bio:
-              type: string
-            age:
-              type: integer
-`
-
 func TestGenerateFullAPIWithComplexModel(t *testing.T) {
 	tmpDir := t.TempDir()
-	inputPath := filepath.Join(tmpDir, "openapi.yaml")
+	inputPath := filepath.Join("..", "openapi-test.yaml")
 	outputPath := filepath.Join(tmpDir, "api.ts")
-
-	err := os.WriteFile(inputPath, []byte(complexSpec), 0644)
-	assert.NoError(t, err, "should write OpenAPI spec")
 
 	os.Args = []string{
 		"fetch-gen",
@@ -115,33 +19,51 @@ func TestGenerateFullAPIWithComplexModel(t *testing.T) {
 		"--output", outputPath,
 	}
 
-	main()
+	err := run()
+	assert.NoError(t, err, "should run successfully")
 
 	content, err := os.ReadFile(outputPath)
 	assert.NoError(t, err, "should generate api.ts")
 	code := string(content)
 
-	// Function definitions
-	assert.Contains(t, code, "export const getUser", "should generate getUser")
-	assert.Contains(t, code, "export const createUser", "should generate createUser")
-	assert.Contains(t, code, "export const updateUser", "should generate updateUser")
-	assert.Contains(t, code, "export const deleteUser", "should generate deleteUser")
+	// Function structure - should use createAdapter pattern
+	assert.Contains(t, code, "export function createAdapter(client: FetchClient)", "should generate createAdapter function")
+	assert.Contains(t, code, "import type { FetchClient, FetchResponse }", "should import FetchResponse type")
 
-	// Function return types
-	assert.Contains(t, code, "getUser = (): Promise<Array<User>>", "should return array of User")
-	assert.Contains(t, code, "createUser = (body: User): Promise<User>", "should return User")
-	assert.Contains(t, code, "updateUser = (id: string, body: User): Promise<User>", "should return User")
-	assert.Contains(t, code, "deleteUser = (id: string): Promise<any>", "should return any")
+	// New query object pattern functions
+	assert.Contains(t, code, "getUsers: (query?: { page?: number; limit?: number; status?: \"active\" | \"inactive\" | \"banned\" })", "should generate getUsers method with query object")
+	assert.Contains(t, code, "createUser: (body: CreateUserRequest): Promise<FetchResponse<User>>", "should generate createUser method")
+	assert.Contains(t, code, "updateUser: (id: string, body: UpdateUserRequest): Promise<FetchResponse<User>>", "should generate updateUser method")
+	assert.Contains(t, code, "deleteUser: (id: string, query?: { force?: boolean })", "should generate deleteUser method with query object")
 
-	// Client calls
-	assert.Contains(t, code, "client.get(`/users`)", "should call GET")
-	assert.Contains(t, code, "client.post(`/users`", "should call POST")
-	assert.Contains(t, code, "client.put(`/users/${id}`", "should call PUT")
-	assert.Contains(t, code, "client.delete(`/users/${id}`)", "should call DELETE")
+	// Multi-parameter path support
+	assert.Contains(t, code, "getUserPost: (user_id: string, post_id: string, query?: { include_comments?: boolean })", "should handle multi-parameter paths with query objects")
+	assert.Contains(t, code, "getTeamMember: (org_id: string, team_id: string, member_id: string", "should handle 3-parameter paths")
 
-	// TypeScript model details
-	assert.Contains(t, code, `status: "active" | "inactive" | "banned";`, "should contain enum")
-	assert.Contains(t, code, `tags: Array<string>;`, "should contain array")
-	assert.Contains(t, code, `metadata: Record<string, string>;`, "should contain map")
-	assert.Contains(t, code, `profile: { bio: string; age: number };`, "should inline nested object")
+	// Dynamic URL construction with query parameters
+	assert.Contains(t, code, "const url = `/users` + (queryString ? '?' + queryString : '');", "should build dynamic URLs for query params")
+	assert.Contains(t, code, "return client.get(url);", "should call GET with dynamic URL")
+	assert.Contains(t, code, "return client.post(`/users`, body);", "should call POST with static URL when no query params")
+	assert.Contains(t, code, "return client.put(`/users/${id}`, body);", "should call PUT with path params")
+	assert.Contains(t, code, "return client.del(url);", "should call DELETE with dynamic URL")
+
+	// Query parameter handling with imported helper function
+	assert.Contains(t, code, "import { buildQueryParams } from '@fgrzl/fetch';", "should import buildQueryParams from @fgrzl/fetch")
+	assert.Contains(t, code, "const queryString = query ? buildQueryParams(query) : '';", "should use imported buildQueryParams helper")
+
+	// TypeScript model details - check User interface
+	assert.Contains(t, code, `status: "active" | "inactive" | "banned" | "pending";`, "should contain enum with all values")
+	assert.Contains(t, code, `tags?: Array<string>;`, "should contain optional array")
+	assert.Contains(t, code, `metadata?: Record<string, string>;`, "should contain optional map")
+
+	// Check for nested object in profile (should be inlined)
+	assert.Contains(t, code, `profile?: {`, "should have profile object")
+	assert.Contains(t, code, `website: string`, "should have website property")
+	assert.Contains(t, code, `avatar: string`, "should have avatar property")
+	assert.Contains(t, code, `bio: string`, "should have bio property")
+	assert.Contains(t, code, `age: number`, "should have age property")
+	assert.Contains(t, code, `location: string`, "should have location property")
+	assert.Contains(t, code, `preferences: {`, "should have preferences nested object")
+	assert.Contains(t, code, `theme: "light" | "dark" | "auto"`, "should have theme enum")
+	assert.Contains(t, code, `notifications: boolean`, "should have notifications boolean")
 }

@@ -4,9 +4,36 @@
   "description": "Generate @fgrzl/fetch clients from OpenAPI spec",
   "author": "smiggleworth",
   "license": "MIT",
-  "keywords": ["fetch", "generator", "openapi", "codegen", "go"],
+  "keywords": [
+    "fetch",
+    "generator",
+    "openapi",
+    "codegen",
+    "go"
+  ],
+  "type": "module",
   "bin": {
-    "fetch-gen": "dist/shim.js"
+    "fetch-gen": "./dist/shim.cjs"
   },
-  "files": ["dist"]
+  "exports": {
+    "import": "./dist/shim.mjs",
+    "require": "./dist/shim.cjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "clean": "rimraf dist node_modules",
+    "test": "vitest run",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "prettier": "^3.6.2",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
 }
