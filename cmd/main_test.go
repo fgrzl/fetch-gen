@@ -67,3 +67,43 @@ func TestGenerateFullAPIWithComplexModel(t *testing.T) {
 	assert.Contains(t, code, `theme: "light" | "dark" | "auto"`, "should have theme enum")
 	assert.Contains(t, code, `notifications: boolean`, "should have notifications boolean")
 }
+
+func TestGenerateRedirectResponses(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputPath := filepath.Join("..", "auth-api.yaml")
+	outputPath := filepath.Join(tmpDir, "auth-api.ts")
+
+	os.Args = []string{
+		"fetch-gen",
+		"--input", inputPath,
+		"--output", outputPath,
+	}
+
+	err := run()
+	assert.NoError(t, err, "should run successfully")
+
+	content, err := os.ReadFile(outputPath)
+	assert.NoError(t, err, "should generate auth-api.ts")
+	code := string(content)
+
+	// Check redirect responses (307) return boolean
+	assert.Contains(t, code, "ssoCallback: (provider: string, query?: { code?: string; state?: string }): Promise<FetchResponse<boolean>>", "307 redirect should return boolean")
+	assert.Contains(t, code, "ssoLogin: (provider: string, query?: { email?: string; return_url?: string }): Promise<FetchResponse<boolean>>", "307 redirect should return boolean")
+	assert.Contains(t, code, "verifyEmail: (query?: { email?: string; token?: string }): Promise<FetchResponse<boolean>>", "307 redirect should return boolean")
+
+	// Check 204 No Content returns boolean
+	assert.Contains(t, code, "logout: (): Promise<FetchResponse<boolean>>", "204 No Content should return boolean")
+	assert.Contains(t, code, "getJWKS: (): Promise<FetchResponse<JWKSResponse>>", "should return typed response when 200 with content exists")
+
+	// Check normal JSON responses
+	assert.Contains(t, code, "detectSSOProviders: (query?: { email?: string }): Promise<FetchResponse<Array<string>>>", "should return array for 200 response")
+	assert.Contains(t, code, "getCurrentUser: (): Promise<FetchResponse<UserIdentity>>", "should return UserIdentity for 200 response")
+	assert.Contains(t, code, "getVerificationStatus: (): Promise<FetchResponse<EmailVerificationStatus>>", "should return EmailVerificationStatus for 200 response")
+	assert.Contains(t, code, "resendVerification: (): Promise<FetchResponse<EmailVerificationStatus>>", "should return EmailVerificationStatus for 200 response")
+
+	// Check generated interfaces
+	assert.Contains(t, code, "export interface EmailVerificationStatus", "should generate EmailVerificationStatus interface")
+	assert.Contains(t, code, "export interface JWKSResponse", "should generate JWKSResponse interface")
+	assert.Contains(t, code, "export interface ProblemDetails", "should generate ProblemDetails interface")
+	assert.Contains(t, code, "export interface UserIdentity", "should generate UserIdentity interface")
+}

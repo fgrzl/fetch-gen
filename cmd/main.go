@@ -205,6 +205,7 @@ func run() error {
 			}
 
 			resType := "any"
+			// Check for successful responses in order of preference
 			for _, code := range []string{"200", "201", "202", "203", "204", "206", "default"} {
 				if resp, ok := op.Responses[code]; ok {
 					// Handle 204 No Content specially
@@ -215,6 +216,31 @@ func run() error {
 					if jsonContent, ok := resp.Content["application/json"]; ok {
 						if jsonContent.Schema != nil {
 							resType = resolveType(jsonContent.Schema)
+							break
+						}
+					}
+				}
+			}
+
+			// If no success response found, check for redirect responses (3xx)
+			if resType == "any" {
+				for _, code := range []string{"300", "301", "302", "303", "304", "307", "308"} {
+					if resp, ok := op.Responses[code]; ok {
+						// Redirects typically don't have a JSON body, just headers
+						// Check if there's content defined
+						if len(resp.Content) == 0 {
+							resType = "boolean"
+							break
+						}
+						// If there is content, try to resolve it
+						if jsonContent, ok := resp.Content["application/json"]; ok {
+							if jsonContent.Schema != nil {
+								resType = resolveType(jsonContent.Schema)
+								break
+							}
+						} else {
+							// Non-JSON redirect response
+							resType = "boolean"
 							break
 						}
 					}
@@ -304,6 +330,12 @@ func run() error {
 			return len(op.QueryParams) > 0
 		},
 		"upper": strings.ToUpper,
+		"add": func(a, b int) int {
+			return a + b
+		},
+		"len": func(slice []NamedOperation) int {
+			return len(slice)
+		},
 		"contains": func(slice []string, item string) bool {
 			for _, s := range slice {
 				if s == item {
@@ -438,41 +470,45 @@ import { buildQueryParams } from '{{.Instance}}';
  * @returns An object with typed methods for each API operation
  */
 export function createAdapter(client: FetchClient): {
-	{{- range $i, $op := .Ops}}
+{{- range $i, $op := .Ops}}
 	/**
 	 * {{if $op.Description}}{{$op.Description}}{{else}}{{$op.Method | upper}} {{$op.DisplayPath}}{{end}}
-	{{- range $param := $op.PathParams}}
+{{- range $param := $op.PathParams}}
 	 * @param {{$param.Name}} {{if $param.Description}}{{$param.Description}}{{else}}{{$param.Name}} parameter{{end}}
-	{{- end}}
-	{{- if hasQueryParams $op}}
+{{- end}}
+{{- if hasQueryParams $op}}
 	 * @param query Query parameters
-	{{- end}}
-	{{- if $op.HasBody}}
+{{- end}}
+{{- if $op.HasBody}}
 	 * @param body Request body
-	{{- end}}
+{{- end}}
 	 */
 	{{$op.ID}}: ({{argList $op}}) => Promise<FetchResponse<{{responseType $op}}>>;
-	{{- end}}
+{{- end}}
 } {
 	return {
-		{{- range $i, $op := .Ops}}
+{{- range $i, $op := .Ops}}
 		{{$op.ID}}: ({{argList $op}}): Promise<FetchResponse<{{responseType $op}}>> => {
-			{{- if hasQueryParams $op}}
+{{- if hasQueryParams $op}}
 			const queryString = query ? buildQueryParams(query) : '';
 			const url = ` + "`" + `{{$op.DisplayPath}}` + "`" + ` + (queryString ? '?' + queryString : '');
 			return client.{{$op.Method}}(url{{if $op.HasBody}}, body{{end}});
-			{{- else}}
+{{- else}}
 			return client.{{$op.Method}}(` + "`" + `{{$op.DisplayPath}}` + "`" + `{{if $op.HasBody}}, body{{end}});
-			{{- end}}
-		},
-		{{- end}}
+{{- end}}
+		}{{if ne (add $i 1) (len $.Ops)}},{{end}}
+{{- end}}
 	};
 }
-
-{{- range $i, $s := .SortedSchemas }}
+{{range $i, $s := .SortedSchemas }}
 {{- $name := $s.Name }}
 {{- $schema := $s.Schema }}
-{{- if $schema.Description }}/** {{$schema.Description}} */{{ else }}/** {{$name}} schema */{{ end }}
+
+{{- if $schema.Description }}
+/** {{$schema.Description}} */
+{{- else}}
+/** {{$name}} schema */
+{{- end}}
 export interface {{$name}} {
 {{- range $idx, $prop := $s.PropKeys }}
 	{{- $def := index $schema.Properties $prop }}
@@ -483,6 +519,5 @@ export interface {{$name}} {
 	{{$prop}}{{if not $isRequired}}?{{end}}: {{ tsType $def }};
 {{- end }}
 }
-
-{{- end }}
+{{end}}
 `
