@@ -18,9 +18,9 @@ paths:
           in: query
           schema:
             type: string
-          example: ""
+          example: ''
       responses:
-        "200":
+        '200':
           description: Success
           content:
             application/json:
@@ -29,23 +29,23 @@ paths:
                 items:
                   type: string
               example: []
-        "400":
+        '400':
           description: Bad Request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
                 example:
-                  type: ""
-                  title: ""
+                  type: ''
+                  title: ''
                   status: 0
-                  detail: ""
+                  detail: ''
                   instance: null
               example:
-                type: ""
-                title: ""
+                type: ''
+                title: ''
                 status: 0
-                detail: ""
+                detail: ''
                 instance: null
   /auth/.well-known/jwks.json:
     get:
@@ -56,7 +56,7 @@ paths:
       description: Returns the public keys used to sign JWT tokens in JWKS format (RFC 7517). Used by clients to verify token signatures.
       operationId: getJWKS
       responses:
-        "200":
+        '200':
           description: Success
           content:
             application/json:
@@ -64,7 +64,7 @@ paths:
                 $ref: '#/components/schemas/JWKSResponse'
               example:
                 keys: []
-        "204":
+        '204':
           description: No Content
   /auth/callback/{provider}:
     get:
@@ -92,19 +92,19 @@ paths:
             type: string
           example: CSRF protection state parameter
       responses:
-        "307":
+        '307':
           description: Response 307
-        "400":
+        '400':
           description: Bad Request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
               example:
-                type: ""
-                title: ""
+                type: ''
+                title: ''
                 status: 0
-                detail: ""
+                detail: ''
                 instance: null
   /auth/login/{provider}:
     get:
@@ -132,19 +132,19 @@ paths:
             type: string
           example: URL to redirect to after successful authentication
       responses:
-        "307":
+        '307':
           description: Response 307
-        "400":
+        '400':
           description: Bad Request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
               example:
-                type: ""
-                title: ""
+                type: ''
+                title: ''
                 status: 0
-                detail: ""
+                detail: ''
                 instance: null
   /auth/logout:
     get:
@@ -154,7 +154,7 @@ paths:
       description: Terminates the user's session and clears authentication cookies.
       operationId: logout
       responses:
-        "204":
+        '204':
           description: No Content
   /auth/me:
     get:
@@ -165,7 +165,7 @@ paths:
       description: Returns the authenticated user's profile information including email, name, and identity details.
       operationId: getCurrentUser
       responses:
-        "200":
+        '200':
           description: Success
           content:
             application/json:
@@ -173,13 +173,13 @@ paths:
                 $ref: '#/components/schemas/UserIdentity'
                 example:
                   userid: 00000000-0000-0000-0000-000000000000
-                  email: ""
-                  name: ""
+                  email: ''
+                  name: ''
               example:
                 userid: 00000000-0000-0000-0000-000000000000
-                email: ""
-                name: ""
-        "401":
+                email: ''
+                name: ''
+        '401':
           description: Unauthorized
           content:
             application/json:
@@ -197,27 +197,27 @@ paths:
       description: Returns the current email verification status for the authenticated user.
       operationId: getVerificationStatus
       responses:
-        "200":
+        '200':
           description: Success
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/EmailVerificationStatus'
                 example:
-                  email: ""
+                  email: ''
                   userid: 00000000-0000-0000-0000-000000000000
                   isverified: false
-                  verificationurl: ""
+                  verificationurl: ''
                   expiresat: 0001-01-01T00:00:00Z
                   requestedat: 0001-01-01T00:00:00Z
               example:
-                email: ""
+                email: ''
                 userid: 00000000-0000-0000-0000-000000000000
                 isverified: false
-                verificationurl: ""
+                verificationurl: ''
                 expiresat: 0001-01-01T00:00:00Z
                 requestedat: 0001-01-01T00:00:00Z
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/json:
@@ -246,19 +246,19 @@ paths:
             type: string
           example: Verification token from the email
       responses:
-        "307":
+        '307':
           description: Response 307
-        "400":
+        '400':
           description: Bad Request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
               example:
-                type: ""
-                title: ""
+                type: ''
+                title: ''
                 status: 0
-                detail: ""
+                detail: ''
                 instance: null
   /auth/verify/resend:
     post:
@@ -268,20 +268,20 @@ paths:
       description: Resends the email verification link to the authenticated user's email address.
       operationId: resendVerification
       responses:
-        "200":
+        '200':
           description: Success
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/EmailVerificationStatus'
               example:
-                email: ""
+                email: ''
                 userid: 00000000-0000-0000-0000-000000000000
                 isverified: false
-                verificationurl: ""
+                verificationurl: ''
                 expiresat: 0001-01-01T00:00:00Z
                 requestedat: 0001-01-01T00:00:00Z
-        "401":
+        '401':
           description: Unauthorized
           content:
             application/json:
@@ -320,7 +320,7 @@ components:
           type: string
         kty:
           type: string
-        "n":
+        'n':
           type: string
         use:
           type: string
