@@ -26,8 +26,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: 'lts/*'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Setup Go
@@ -84,7 +83,7 @@ jobs:
         if: github.ref_type == 'tag' || github.ref == 'refs/heads/develop'
         run: |
           npm version ${{ steps.version.outputs.semVer }} --no-git-tag-version
-          npm publish --provenance=false --tag ${{ steps.version.outputs.preReleaseLabel || 'latest' }}
+          npm publish --provenance --tag ${{ steps.version.outputs.preReleaseLabel || 'latest' }}
 
       - name: Prune Pre-release Tags
         uses: fgrzl/actions/prune-tags@v0.0.6
