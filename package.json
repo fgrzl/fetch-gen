@@ -13,7 +13,7 @@
   ],
   "type": "module",
   "bin": {
-    "fetch-gen": "./dist/shim.cjs"
+    "fetch-gen": "dist/shim.cjs"
   },
   "exports": {
     "import": "./dist/shim.mjs",
