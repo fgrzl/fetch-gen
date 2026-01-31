@@ -1,0 +1,29 @@
+openapi: 3.1.0
+info:
+  title: Nullable & Enum Test API
+  version: 1.0.0
+paths:
+  /thing:
+    get:
+      operationId: getThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Thing'
+components:
+  schemas:
+    Thing:
+      type: object
+      required: [status]
+      properties:
+        status:
+          enum: [active, inactive, null]
+        count:
+          enum: [0, 1, 2]
+        flag:
+          enum: [true, false]
+    MaybeString:
+      type: [string, 'null']

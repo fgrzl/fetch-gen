@@ -19,6 +19,73 @@ type AdditionalProperties struct {
 	Schema  *Schema
 }
 
+// SchemaType supports OpenAPI 3.1 / JSON Schema where `type` can be a string or an array of strings.
+// Examples: "string" or ["string","null"].
+type SchemaType struct {
+	Values []string
+}
+
+func (st *SchemaType) UnmarshalYAML(node *yaml.Node) error {
+	if node == nil {
+		st.Values = nil
+		return nil
+	}
+	var single string
+	if err := node.Decode(&single); err == nil {
+		if single == "" {
+			st.Values = nil
+			return nil
+		}
+		st.Values = []string{single}
+		return nil
+	}
+	var list []string
+	if err := node.Decode(&list); err == nil {
+		st.Values = list
+		return nil
+	}
+	// Unknown shape; treat as unset
+	st.Values = nil
+	return nil
+}
+
+func (st *SchemaType) UnmarshalJSON(data []byte) error {
+	// null
+	if string(data) == "null" {
+		st.Values = nil
+		return nil
+	}
+	var single string
+	if err := json.Unmarshal(data, &single); err == nil {
+		if single == "" {
+			st.Values = nil
+			return nil
+		}
+		st.Values = []string{single}
+		return nil
+	}
+	var list []string
+	if err := json.Unmarshal(data, &list); err == nil {
+		st.Values = list
+		return nil
+	}
+	st.Values = nil
+	return nil
+}
+
+func (st SchemaType) has(t string) bool {
+	for _, v := range st.Values {
+		if v == t {
+			return true
+		}
+	}
+	return false
+}
+
+func (st SchemaType) isEmpty() bool {
+	return len(st.Values) == 0
+}
+
 func (ap *AdditionalProperties) UnmarshalYAML(node *yaml.Node) error {
 	var b bool
 	if err := node.Decode(&b); err == nil {
@@ -81,13 +148,14 @@ type Response struct {
 }
 
 type Schema struct {
-	Type                 string                `json:"type" yaml:"type"`
+	Type                 SchemaType            `json:"type" yaml:"type"`
 	Properties           map[string]*Schema    `json:"properties" yaml:"properties"`
 	Items                *Schema               `json:"items" yaml:"items"`
 	Enum                 []any                 `json:"enum" yaml:"enum"`
 	Ref                  string                `json:"$ref" yaml:"$ref"`
 	Description          string                `json:"description" yaml:"description"`
 	Required             []string              `json:"required" yaml:"required"`
+	Nullable             *bool                 `json:"nullable" yaml:"nullable"`
 	AllOf                []*Schema             `json:"allOf" yaml:"allOf"`
 	OneOf                []*Schema             `json:"oneOf" yaml:"oneOf"`
 	AnyOf                []*Schema             `json:"anyOf" yaml:"anyOf"`
@@ -287,6 +355,31 @@ func run() error {
 
 	funcs := template.FuncMap{
 		"tsType": resolveType,
+		"isAlias": func(s *Schema) bool {
+			if s == nil {
+				return true
+			}
+			// If this schema is a ref or a composed/enum/primitive, emit a type alias.
+			if s.Ref != "" {
+				return true
+			}
+			if len(s.Enum) > 0 {
+				return true
+			}
+			if len(s.AllOf) > 0 || len(s.OneOf) > 0 || len(s.AnyOf) > 0 {
+				return true
+			}
+			// Objects with additionalProperties are better represented as a Record<> type alias.
+			if s.Type.has("object") {
+				if s.AdditionalProperties != nil {
+					return true
+				}
+				// If there are no explicit properties, avoid generating an empty interface.
+				return len(s.Properties) == 0
+			}
+			// Arrays/primitives: emit a type alias.
+			return !s.Type.isEmpty()
+		},
 		"argList": func(op NamedOperation) string {
 			args := []string{}
 			// Add path parameters
@@ -318,7 +411,31 @@ func run() error {
 				}
 				args = append(args, fmt.Sprintf("body: %s", bodyType))
 			}
+			// Always allow passing AbortSignal/timeout through to the underlying client
+			args = append(args, "options?: { signal?: AbortSignal; timeout?: number }")
 			return strings.Join(args, ", ")
+		},
+		"clientCall": func(op NamedOperation, urlExpr string) string {
+			// @fgrzl/fetch method signatures:
+			// - get/del/head: (url, params?, options?)
+			// - post/put/patch: (url, body?, headers?, options?)
+			switch op.Method {
+			case "get", "del", "head":
+				return fmt.Sprintf("return client.%s(%s, undefined, options);", op.Method, urlExpr)
+			case "post", "put", "patch":
+				bodyArg := "undefined"
+				if op.HasBody {
+					bodyArg = "body"
+				}
+				return fmt.Sprintf("return client.%s(%s, %s, undefined, options);", op.Method, urlExpr, bodyArg)
+			default:
+				// Fallback: pass URL, optional body, then options
+				bodyArg := "undefined"
+				if op.HasBody {
+					bodyArg = "body"
+				}
+				return fmt.Sprintf("return client.%s(%s, %s, options);", op.Method, urlExpr, bodyArg)
+			}
 		},
 		"responseType": func(op NamedOperation) string {
 			if op.ResponseType != "" {
@@ -388,52 +505,34 @@ func resolveType(s *Schema) string {
 		return extractRefName(s.Ref)
 	}
 	if len(s.Enum) > 0 {
-		types := make([]string, len(s.Enum))
-		for i, val := range s.Enum {
-			types[i] = fmt.Sprintf(`"%v"`, val)
+		types := make([]string, 0, len(s.Enum))
+		for _, val := range s.Enum {
+			switch v := val.(type) {
+			case nil:
+				types = append(types, "null")
+			case string:
+				types = append(types, fmt.Sprintf(`"%s"`, v))
+			case bool:
+				if v {
+					types = append(types, "true")
+				} else {
+					types = append(types, "false")
+				}
+			case int:
+				types = append(types, fmt.Sprintf("%d", v))
+			case int64:
+				types = append(types, fmt.Sprintf("%d", v))
+			case float64:
+				types = append(types, strings.TrimRight(strings.TrimRight(fmt.Sprintf("%f", v), "0"), "."))
+			default:
+				// Best-effort fallback; keep it a string literal to avoid invalid TS.
+				types = append(types, fmt.Sprintf(`"%v"`, v))
+			}
 		}
 		return strings.Join(types, " | ")
 	}
-	switch s.Type {
-	case "string":
-		return "string"
-	case "integer", "number":
-		return "number"
-	case "boolean":
-		return "boolean"
-	case "array":
-		return "Array<" + resolveType(s.Items) + ">"
-	case "object":
-		if s.AdditionalProperties != nil {
-			if s.AdditionalProperties.Boolean != nil {
-				if *s.AdditionalProperties.Boolean {
-					return "Record<string, any>"
-				} else {
-					// additionalProperties: false - no additional properties allowed
-					if len(s.Properties) == 0 {
-						return "Record<string, never>"
-					}
-				}
-			} else if s.AdditionalProperties.Schema != nil {
-				return "Record<string, " + resolveType(s.AdditionalProperties.Schema) + ">"
-			}
-		}
-		if len(s.Properties) == 0 {
-			return "Record<string, any>"
-		}
-		props := []string{}
-		// iterate properties in sorted order for deterministic output
-		propKeys := []string{}
-		for name := range s.Properties {
-			propKeys = append(propKeys, name)
-		}
-		sort.Strings(propKeys)
-		for _, name := range propKeys {
-			prop := s.Properties[name]
-			props = append(props, fmt.Sprintf("%s: %s", name, resolveType(prop)))
-		}
-		return "{ " + strings.Join(props, "; ") + " }"
-	}
+	// Composition keywords can appear with or without an explicit `type`.
+	// Prefer them over `type` to avoid silently ignoring anyOf/oneOf/allOf.
 	if len(s.AllOf) > 0 {
 		types := []string{}
 		for _, sub := range s.AllOf {
@@ -452,7 +551,86 @@ func resolveType(s *Schema) string {
 		}
 		return strings.Join(types, " | ")
 	}
+	// Determine base type(s) from `type`.
+	// OpenAPI 3.1 allows `type` to be a list including "null".
+	typeVals := s.Type.Values
+	if len(typeVals) == 0 {
+		// Heuristic: object schemas commonly omit `type`.
+		if len(s.Properties) > 0 || s.AdditionalProperties != nil {
+			typeVals = []string{"object"}
+		}
+	}
+
+	mapOne := func(t string) string {
+		switch t {
+		case "string":
+			return "string"
+		case "integer", "number":
+			return "number"
+		case "boolean":
+			return "boolean"
+		case "null":
+			return "null"
+		case "array":
+			return "Array<" + resolveType(s.Items) + ">"
+		case "object":
+			if s.AdditionalProperties != nil {
+				if s.AdditionalProperties.Boolean != nil {
+					if *s.AdditionalProperties.Boolean {
+						return "Record<string, any>"
+					}
+					// additionalProperties: false - no additional properties allowed
+					if len(s.Properties) == 0 {
+						return "Record<string, never>"
+					}
+				} else if s.AdditionalProperties.Schema != nil {
+					return "Record<string, " + resolveType(s.AdditionalProperties.Schema) + ">"
+				}
+			}
+			if len(s.Properties) == 0 {
+				return "Record<string, any>"
+			}
+			props := []string{}
+			// iterate properties in sorted order for deterministic output
+			propKeys := []string{}
+			for name := range s.Properties {
+				propKeys = append(propKeys, name)
+			}
+			sort.Strings(propKeys)
+			for _, name := range propKeys {
+				prop := s.Properties[name]
+				props = append(props, fmt.Sprintf("%s: %s", name, resolveType(prop)))
+			}
+			return "{ " + strings.Join(props, "; ") + " }"
+		default:
+			return "any"
+		}
+	}
+
+	if len(typeVals) > 0 {
+		parts := make([]string, 0, len(typeVals)+1)
+		for _, tv := range typeVals {
+			parts = append(parts, mapOne(tv))
+		}
+		// Back-compat: support OpenAPI 3.0 `nullable: true` as `T | null`.
+		if s.Nullable != nil && *s.Nullable {
+			if !containsString(parts, "null") {
+				parts = append(parts, "null")
+			}
+		}
+		return strings.Join(parts, " | ")
+	}
+
 	return "any"
+}
+
+func containsString(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }
 
 func extractRefName(ref string) string {
@@ -498,6 +676,7 @@ export function createAdapter(client: FetchClient): {
 {{- if $op.HasBody}}
    * @param body - Request body
 {{- end}}
+	 * @param options - Request options (signal, timeout)
    * @returns Promise resolving to FetchResponse<{{responseType $op}}>
    */
   {{$op.ID}}: ({{argList $op}}) => Promise<FetchResponse<{{responseType $op}}>>;
@@ -509,9 +688,9 @@ export function createAdapter(client: FetchClient): {
 {{- if hasQueryParams $op}}
       const queryString = query ? buildQueryParams(query) : '';
       const url = ` + "`" + `{{$op.DisplayPath}}` + "`" + ` + (queryString ? '?' + queryString : '');
-      return client.{{$op.Method}}(url{{if $op.HasBody}}, body{{end}});
+			{{clientCall $op "url"}}
 {{- else}}
-      return client.{{$op.Method}}(` + "`" + `{{$op.DisplayPath}}` + "`" + `{{if $op.HasBody}}, body{{end}});
+	{{clientCall $op (printf "%c%s%c" 96 $op.DisplayPath 96)}}
 {{- end}}
     }{{if ne (add $i 1) (len $.Ops)}},{{end}}
 {{- end}}
@@ -526,6 +705,9 @@ export function createAdapter(client: FetchClient): {
 {{- else}}
 /** {{$name}} schema */
 {{- end}}
+{{- if isAlias $schema }}
+export type {{$name}} = {{ tsType $schema }};
+{{- else}}
 export interface {{$name}} {
 {{- range $idx, $prop := $s.PropKeys }}
   {{- $def := index $schema.Properties $prop }}
@@ -536,5 +718,6 @@ export interface {{$name}} {
   {{$prop}}{{if not $isRequired}}?{{end}}: {{ tsType $def }};
 {{- end }}
 }
+{{- end}}
 {{end}}
 `

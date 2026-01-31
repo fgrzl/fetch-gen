@@ -27,98 +27,107 @@ export function createAdapter(client: FetchClient): {
    * Detect SSO providers for an email address
    *
    * @param query - Query parameters
+	 * @param options - Request options (signal, timeout)
    * @returns Promise resolving to FetchResponse<Array<string>>
    */
-  detectSSOProviders: (query?: { email?: string }) => Promise<FetchResponse<Array<string>>>;
+  detectSSOProviders: (query?: { email?: string }, options?: { signal?: AbortSignal; timeout?: number }) => Promise<FetchResponse<Array<string>>>;
   /**
    * Get JSON Web Key Set
    *
+	 * @param options - Request options (signal, timeout)
    * @returns Promise resolving to FetchResponse<JWKSResponse>
    */
-  getJWKS: () => Promise<FetchResponse<JWKSResponse>>;
+  getJWKS: (options?: { signal?: AbortSignal; timeout?: number }) => Promise<FetchResponse<JWKSResponse>>;
   /**
    * Handle SSO callback
    *
    * @param provider - provider parameter
    * @param query - Query parameters
+	 * @param options - Request options (signal, timeout)
    * @returns Promise resolving to FetchResponse<boolean>
    */
-  ssoCallback: (provider: string, query?: { code?: string; state?: string }) => Promise<FetchResponse<boolean>>;
+  ssoCallback: (provider: string, query?: { code?: string; state?: string }, options?: { signal?: AbortSignal; timeout?: number }) => Promise<FetchResponse<boolean>>;
   /**
    * Initiate SSO login flow
    *
    * @param provider - provider parameter
    * @param query - Query parameters
+	 * @param options - Request options (signal, timeout)
    * @returns Promise resolving to FetchResponse<boolean>
    */
-  ssoLogin: (provider: string, query?: { email?: string; return_url?: string }) => Promise<FetchResponse<boolean>>;
+  ssoLogin: (provider: string, query?: { email?: string; return_url?: string }, options?: { signal?: AbortSignal; timeout?: number }) => Promise<FetchResponse<boolean>>;
   /**
    * Logout user
    *
+	 * @param options - Request options (signal, timeout)
    * @returns Promise resolving to FetchResponse<boolean>
    */
-  logout: () => Promise<FetchResponse<boolean>>;
+  logout: (options?: { signal?: AbortSignal; timeout?: number }) => Promise<FetchResponse<boolean>>;
   /**
    * Get current user information
    *
+	 * @param options - Request options (signal, timeout)
    * @returns Promise resolving to FetchResponse<UserIdentity>
    */
-  getCurrentUser: () => Promise<FetchResponse<UserIdentity>>;
+  getCurrentUser: (options?: { signal?: AbortSignal; timeout?: number }) => Promise<FetchResponse<UserIdentity>>;
   /**
    * Get email verification status
    *
+	 * @param options - Request options (signal, timeout)
    * @returns Promise resolving to FetchResponse<EmailVerificationStatus>
    */
-  getVerificationStatus: () => Promise<FetchResponse<EmailVerificationStatus>>;
+  getVerificationStatus: (options?: { signal?: AbortSignal; timeout?: number }) => Promise<FetchResponse<EmailVerificationStatus>>;
   /**
    * Verify email address
    *
    * @param query - Query parameters
+	 * @param options - Request options (signal, timeout)
    * @returns Promise resolving to FetchResponse<boolean>
    */
-  verifyEmail: (query?: { email?: string; token?: string }) => Promise<FetchResponse<boolean>>;
+  verifyEmail: (query?: { email?: string; token?: string }, options?: { signal?: AbortSignal; timeout?: number }) => Promise<FetchResponse<boolean>>;
   /**
    * Resend verification email
    *
+	 * @param options - Request options (signal, timeout)
    * @returns Promise resolving to FetchResponse<EmailVerificationStatus>
    */
-  resendVerification: () => Promise<FetchResponse<EmailVerificationStatus>>;
+  resendVerification: (options?: { signal?: AbortSignal; timeout?: number }) => Promise<FetchResponse<EmailVerificationStatus>>;
 } {
   return {
-    detectSSOProviders: (query?: { email?: string }): Promise<FetchResponse<Array<string>>> => {
+    detectSSOProviders: (query?: { email?: string }, options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<Array<string>>> => {
       const queryString = query ? buildQueryParams(query) : '';
       const url = `/api/v1/sso/detect` + (queryString ? '?' + queryString : '');
-      return client.get(url);
+			return client.get(url, undefined, options);
     },
-    getJWKS: (): Promise<FetchResponse<JWKSResponse>> => {
-      return client.get(`/auth/.well-known/jwks.json`);
+    getJWKS: (options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<JWKSResponse>> => {
+	return client.get(`/auth/.well-known/jwks.json`, undefined, options);
     },
-    ssoCallback: (provider: string, query?: { code?: string; state?: string }): Promise<FetchResponse<boolean>> => {
+    ssoCallback: (provider: string, query?: { code?: string; state?: string }, options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<boolean>> => {
       const queryString = query ? buildQueryParams(query) : '';
       const url = `/auth/callback/${provider}` + (queryString ? '?' + queryString : '');
-      return client.get(url);
+			return client.get(url, undefined, options);
     },
-    ssoLogin: (provider: string, query?: { email?: string; return_url?: string }): Promise<FetchResponse<boolean>> => {
+    ssoLogin: (provider: string, query?: { email?: string; return_url?: string }, options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<boolean>> => {
       const queryString = query ? buildQueryParams(query) : '';
       const url = `/auth/login/${provider}` + (queryString ? '?' + queryString : '');
-      return client.get(url);
+			return client.get(url, undefined, options);
     },
-    logout: (): Promise<FetchResponse<boolean>> => {
-      return client.get(`/auth/logout`);
+    logout: (options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<boolean>> => {
+	return client.get(`/auth/logout`, undefined, options);
     },
-    getCurrentUser: (): Promise<FetchResponse<UserIdentity>> => {
-      return client.get(`/auth/me`);
+    getCurrentUser: (options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<UserIdentity>> => {
+	return client.get(`/auth/me`, undefined, options);
     },
-    getVerificationStatus: (): Promise<FetchResponse<EmailVerificationStatus>> => {
-      return client.get(`/auth/verification-status`);
+    getVerificationStatus: (options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<EmailVerificationStatus>> => {
+	return client.get(`/auth/verification-status`, undefined, options);
     },
-    verifyEmail: (query?: { email?: string; token?: string }): Promise<FetchResponse<boolean>> => {
+    verifyEmail: (query?: { email?: string; token?: string }, options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<boolean>> => {
       const queryString = query ? buildQueryParams(query) : '';
       const url = `/auth/verify` + (queryString ? '?' + queryString : '');
-      return client.get(url);
+			return client.get(url, undefined, options);
     },
-    resendVerification: (): Promise<FetchResponse<EmailVerificationStatus>> => {
-      return client.post(`/auth/verify/resend`);
+    resendVerification: (options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<EmailVerificationStatus>> => {
+	return client.post(`/auth/verify/resend`, undefined, undefined, options);
     }
   };
 }

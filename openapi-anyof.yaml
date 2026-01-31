@@ -1,0 +1,36 @@
+openapi: 3.0.0
+info:
+  title: AnyOf Test API
+  version: 1.0.0
+paths:
+  /pet:
+    get:
+      operationId: getPet
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+components:
+  schemas:
+    Pet:
+      description: A pet is either a cat or a dog.
+      anyOf:
+        - $ref: '#/components/schemas/Cat'
+        - $ref: '#/components/schemas/Dog'
+    Cat:
+      type: object
+      required:
+        - meows
+      properties:
+        meows:
+          type: boolean
+    Dog:
+      type: object
+      required:
+        - barks
+      properties:
+        barks:
+          type: boolean
