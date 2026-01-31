@@ -1,5 +1,4 @@
 mode: ContinuousDelivery
 branches:
   main:
-    label: alpha
     increment: Patch
