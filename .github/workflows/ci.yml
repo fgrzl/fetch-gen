@@ -5,10 +5,38 @@ on:
   push:
     branches:
       - '**'
+    paths:
+      - 'cmd/**'
+      - 'src/**'
+      - 'test/**'
+      - '*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '*.ts'
+      - '*.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'tsup.config.ts'
+      - 'vitest.config.ts'
   pull_request:
     branches:
       - main
       - develop
+    paths:
+      - 'cmd/**'
+      - 'src/**'
+      - 'test/**'
+      - '*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '*.ts'
+      - '*.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'tsup.config.ts'
+      - 'vitest.config.ts'
 
 permissions:
   contents: read
