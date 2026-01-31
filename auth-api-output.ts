@@ -3,69 +3,89 @@ import type { FetchClient, FetchResponse } from '@fgrzl/fetch';
 import { buildQueryParams } from '@fgrzl/fetch';
 
 /**
- * Creates an API adapter with typed methods for all OpenAPI operations
- * @param client The FetchClient instance to use for HTTP requests
+ * Creates an API adapter with typed methods for all OpenAPI operations.
+ *
+ * @param client - The FetchClient instance to use for HTTP requests
  * @returns An object with typed methods for each API operation
+ *
+ * @example
+ * ```typescript
+ * import { createAdapter } from './generated';
+ * import client from '@fgrzl/fetch';
+ *
+ * client.setBaseUrl('https://api.example.com');
+ * const api = createAdapter(client);
+ *
+ * const response = await api.getUsers();
+ * if (response.ok) {
+ *   console.log(response.data);
+ * }
+ * ```
  */
 export function createAdapter(client: FetchClient): {
   /**
    * Detect SSO providers for an email address
-   * @param query Query parameters
+   *
+   * @param query - Query parameters
+   * @returns Promise resolving to FetchResponse<Array<string>>
    */
-  detectSSOProviders: (query?: {
-    email?: string;
-  }) => Promise<FetchResponse<Array<string>>>;
+  detectSSOProviders: (query?: { email?: string }) => Promise<FetchResponse<Array<string>>>;
   /**
    * Get JSON Web Key Set
+   *
+   * @returns Promise resolving to FetchResponse<JWKSResponse>
    */
   getJWKS: () => Promise<FetchResponse<JWKSResponse>>;
   /**
    * Handle SSO callback
-   * @param provider provider parameter
-   * @param query Query parameters
+   *
+   * @param provider - provider parameter
+   * @param query - Query parameters
+   * @returns Promise resolving to FetchResponse<boolean>
    */
-  ssoCallback: (
-    provider: string,
-    query?: { code?: string; state?: string }
-  ) => Promise<FetchResponse<boolean>>;
+  ssoCallback: (provider: string, query?: { code?: string; state?: string }) => Promise<FetchResponse<boolean>>;
   /**
    * Initiate SSO login flow
-   * @param provider provider parameter
-   * @param query Query parameters
+   *
+   * @param provider - provider parameter
+   * @param query - Query parameters
+   * @returns Promise resolving to FetchResponse<boolean>
    */
-  ssoLogin: (
-    provider: string,
-    query?: { email?: string; return_url?: string }
-  ) => Promise<FetchResponse<boolean>>;
+  ssoLogin: (provider: string, query?: { email?: string; return_url?: string }) => Promise<FetchResponse<boolean>>;
   /**
    * Logout user
+   *
+   * @returns Promise resolving to FetchResponse<boolean>
    */
   logout: () => Promise<FetchResponse<boolean>>;
   /**
    * Get current user information
+   *
+   * @returns Promise resolving to FetchResponse<UserIdentity>
    */
   getCurrentUser: () => Promise<FetchResponse<UserIdentity>>;
   /**
    * Get email verification status
+   *
+   * @returns Promise resolving to FetchResponse<EmailVerificationStatus>
    */
   getVerificationStatus: () => Promise<FetchResponse<EmailVerificationStatus>>;
   /**
    * Verify email address
-   * @param query Query parameters
+   *
+   * @param query - Query parameters
+   * @returns Promise resolving to FetchResponse<boolean>
    */
-  verifyEmail: (query?: {
-    email?: string;
-    token?: string;
-  }) => Promise<FetchResponse<boolean>>;
+  verifyEmail: (query?: { email?: string; token?: string }) => Promise<FetchResponse<boolean>>;
   /**
    * Resend verification email
+   *
+   * @returns Promise resolving to FetchResponse<EmailVerificationStatus>
    */
   resendVerification: () => Promise<FetchResponse<EmailVerificationStatus>>;
 } {
   return {
-    detectSSOProviders: (query?: {
-      email?: string;
-    }): Promise<FetchResponse<Array<string>>> => {
+    detectSSOProviders: (query?: { email?: string }): Promise<FetchResponse<Array<string>>> => {
       const queryString = query ? buildQueryParams(query) : '';
       const url = `/api/v1/sso/detect` + (queryString ? '?' + queryString : '');
       return client.get(url);
@@ -73,22 +93,14 @@ export function createAdapter(client: FetchClient): {
     getJWKS: (): Promise<FetchResponse<JWKSResponse>> => {
       return client.get(`/auth/.well-known/jwks.json`);
     },
-    ssoCallback: (
-      provider: string,
-      query?: { code?: string; state?: string }
-    ): Promise<FetchResponse<boolean>> => {
+    ssoCallback: (provider: string, query?: { code?: string; state?: string }): Promise<FetchResponse<boolean>> => {
       const queryString = query ? buildQueryParams(query) : '';
-      const url =
-        `/auth/callback/${provider}` + (queryString ? '?' + queryString : '');
+      const url = `/auth/callback/${provider}` + (queryString ? '?' + queryString : '');
       return client.get(url);
     },
-    ssoLogin: (
-      provider: string,
-      query?: { email?: string; return_url?: string }
-    ): Promise<FetchResponse<boolean>> => {
+    ssoLogin: (provider: string, query?: { email?: string; return_url?: string }): Promise<FetchResponse<boolean>> => {
       const queryString = query ? buildQueryParams(query) : '';
-      const url =
-        `/auth/login/${provider}` + (queryString ? '?' + queryString : '');
+      const url = `/auth/login/${provider}` + (queryString ? '?' + queryString : '');
       return client.get(url);
     },
     logout: (): Promise<FetchResponse<boolean>> => {
@@ -97,22 +109,17 @@ export function createAdapter(client: FetchClient): {
     getCurrentUser: (): Promise<FetchResponse<UserIdentity>> => {
       return client.get(`/auth/me`);
     },
-    getVerificationStatus: (): Promise<
-      FetchResponse<EmailVerificationStatus>
-    > => {
+    getVerificationStatus: (): Promise<FetchResponse<EmailVerificationStatus>> => {
       return client.get(`/auth/verification-status`);
     },
-    verifyEmail: (query?: {
-      email?: string;
-      token?: string;
-    }): Promise<FetchResponse<boolean>> => {
+    verifyEmail: (query?: { email?: string; token?: string }): Promise<FetchResponse<boolean>> => {
       const queryString = query ? buildQueryParams(query) : '';
       const url = `/auth/verify` + (queryString ? '?' + queryString : '');
       return client.get(url);
     },
     resendVerification: (): Promise<FetchResponse<EmailVerificationStatus>> => {
       return client.post(`/auth/verify/resend`);
-    },
+    }
   };
 }
 
@@ -155,3 +162,4 @@ export interface UserIdentity {
   name?: string;
   user_id?: string;
 }
+
