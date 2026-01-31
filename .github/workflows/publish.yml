@@ -82,7 +82,7 @@ jobs:
       - name: Publish to npm (Trusted Publishing)
         if: github.ref_type == 'tag' || github.ref == 'refs/heads/develop'
         run: |
-          npm version ${{ steps.version.outputs.semVer }} --no-git-tag-version
+          npm version ${{ steps.version.outputs.majorMinorPatch }} --no-git-tag-version
           npm publish --provenance --tag ${{ steps.version.outputs.preReleaseLabel || 'latest' }}
 
       - name: Prune Pre-release Tags
