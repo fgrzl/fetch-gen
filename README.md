@@ -1,5 +1,5 @@
-[![ci](https://github.com/fgrzl/fetch-gen/actions/workflows/ci.yml/badge.svg)](https://github.com/fgrzl/fetch-gen/actions/workflows/ci.yml)
-[![publish](https://github.com/fgrzl/fetch-gen/actions/workflows/publish.yml/badge.svg)](https://github.com/fgrzl/fetch-gen/actions/workflows/publish.yml)
+[![ci](https://github.com/fgrzl/fetch-gen/actions/workflows/ci.yaml/badge.svg)](https://github.com/fgrzl/fetch-gen/actions/workflows/ci.yaml)
+[![publish](https://github.com/fgrzl/fetch-gen/actions/workflows/publish.yaml/badge.svg)](https://github.com/fgrzl/fetch-gen/actions/workflows/publish.yaml)
 [![Dependabot Updates](https://github.com/fgrzl/fetch-gen/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/fgrzl/fetch-gen/actions/workflows/dependabot/dependabot-updates)
 
 # @fgrzl/fetch-gen

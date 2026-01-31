@@ -9,6 +9,7 @@ on:
 permissions:
   contents: write
   packages: read
+  id-token: write # required for npm Trusted Publishing
 
 jobs:
   TagAndPublish:
@@ -18,28 +19,28 @@ jobs:
 
     steps:
       - name: Checkout Full History
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: 'lts/*'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.24'
+          go-version: '1.25'
           cache: true
 
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v4.1.0
+        uses: gittools/actions/gitversion/setup@v4.2.0
 
       - name: Calculate Version
         id: version
-        uses: gittools/actions/gitversion/execute@v4.1.0
+        uses: gittools/actions/gitversion/execute@v4.2.0
 
       - name: Install Dependencies
         run: npm ci
@@ -51,7 +52,7 @@ jobs:
         run: go mod download
 
       - name: Check Formatting
-        run: npm run format -- --check
+        run: npm run fmt -- --check
 
       - name: Run Go Tests
         run: go test ./...
@@ -73,17 +74,16 @@ jobs:
         run: npm test
 
       - name: Tag Commit
-        uses: fgrzl/actions/tag-commit@v0.0.5
+        if: github.ref_type != 'tag'
+        uses: fgrzl/actions/tag-commit@v0.0.6
         with:
           tag: ${{ steps.version.outputs.semVer }}
 
-      - name: Publish NPM
+      - name: Publish to npm (Trusted Publishing)
         if: github.ref_type == 'tag' || github.ref == 'refs/heads/develop'
-        uses: fgrzl/actions/publish-npm@v0.0.5
-        with:
-          npm-token: ${{ secrets.NPM_TOKEN }}
-          label: ${{ steps.version.outputs.PreReleaseLabel }}
-          version: ${{ steps.version.outputs.semVer }}
+        run: |
+          npm version ${{ steps.version.outputs.semVer }} --no-git-tag-version
+          npm publish --provenance --tag ${{ steps.version.outputs.preReleaseLabel || 'latest' }}
 
       - name: Prune Pre-release Tags
-        uses: fgrzl/actions/prune-tags@v0.0.5
+        uses: fgrzl/actions/prune-tags@v0.0.6

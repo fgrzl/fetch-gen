@@ -1,0 +1,356 @@
+openapi: 3.1.0
+info:
+  title: Mesh Auth API
+  description: Authentication and authorization API for the Mesh platform.
+  version: 1.0.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+servers:
+  - url: /
+paths:
+  /api/v1/sso/detect:
+    get:
+      tags:
+        - SSO
+      summary: Detect SSO providers for an email address
+      operationId: detectSSOProviders
+      parameters:
+        - name: email
+          in: query
+          schema:
+            type: string
+          example: ''
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example: []
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+                example:
+                  type: ''
+                  title: ''
+                  status: 0
+                  detail: ''
+                  instance: null
+              example:
+                type: ''
+                title: ''
+                status: 0
+                detail: ''
+                instance: null
+  /auth/.well-known/jwks.json:
+    get:
+      tags:
+        - Authentication
+        - Security
+      summary: Get JSON Web Key Set
+      description: Returns the public keys used to sign JWT tokens in JWKS format (RFC 7517). Used by clients to verify token signatures.
+      operationId: getJWKS
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JWKSResponse'
+              example:
+                keys: []
+        '204':
+          description: No Content
+  /auth/callback/{provider}:
+    get:
+      tags:
+        - Authentication
+        - SSO
+      summary: Handle SSO callback
+      description: OAuth2/OIDC callback endpoint that handles the authorization code exchange, token validation, and user session creation.
+      operationId: ssoCallback
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+          example: SSO provider name (microsoft or google)
+        - name: code
+          in: query
+          schema:
+            type: string
+          example: Authorization code from the provider
+        - name: state
+          in: query
+          schema:
+            type: string
+          example: CSRF protection state parameter
+      responses:
+        '307':
+          description: Response 307
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: ''
+                title: ''
+                status: 0
+                detail: ''
+                instance: null
+  /auth/login/{provider}:
+    get:
+      tags:
+        - Authentication
+        - SSO
+      summary: Initiate SSO login flow
+      description: Initiates the OAuth2/OIDC login flow with the specified provider (microsoft or google). Redirects to the provider's authorization page.
+      operationId: ssoLogin
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+          example: SSO provider name (microsoft or google)
+        - name: email
+          in: query
+          schema:
+            type: string
+          example: User's email address for verification
+        - name: return_url
+          in: query
+          schema:
+            type: string
+          example: URL to redirect to after successful authentication
+      responses:
+        '307':
+          description: Response 307
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: ''
+                title: ''
+                status: 0
+                detail: ''
+                instance: null
+  /auth/logout:
+    get:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Terminates the user's session and clears authentication cookies.
+      operationId: logout
+      responses:
+        '204':
+          description: No Content
+  /auth/me:
+    get:
+      tags:
+        - Authentication
+        - User
+      summary: Get current user information
+      description: Returns the authenticated user's profile information including email, name, and identity details.
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserIdentity'
+                example:
+                  userid: 00000000-0000-0000-0000-000000000000
+                  email: ''
+                  name: ''
+              example:
+                userid: 00000000-0000-0000-0000-000000000000
+                email: ''
+                name: ''
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+              example:
+                error: unauthorized
+  /auth/verification-status:
+    get:
+      tags:
+        - Email Verification
+      summary: Get email verification status
+      description: Returns the current email verification status for the authenticated user.
+      operationId: getVerificationStatus
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailVerificationStatus'
+                example:
+                  email: ''
+                  userid: 00000000-0000-0000-0000-000000000000
+                  isverified: false
+                  verificationurl: ''
+                  expiresat: 0001-01-01T00:00:00Z
+                  requestedat: 0001-01-01T00:00:00Z
+              example:
+                email: ''
+                userid: 00000000-0000-0000-0000-000000000000
+                isverified: false
+                verificationurl: ''
+                expiresat: 0001-01-01T00:00:00Z
+                requestedat: 0001-01-01T00:00:00Z
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+              example:
+                error: unauthorized
+  /auth/verify:
+    get:
+      tags:
+        - Email Verification
+      summary: Verify email address
+      description: Verifies a user's email address using a magic link token sent via email.
+      operationId: verifyEmail
+      parameters:
+        - name: email
+          in: query
+          schema:
+            type: string
+          example: Email address to verify
+        - name: token
+          in: query
+          schema:
+            type: string
+          example: Verification token from the email
+      responses:
+        '307':
+          description: Response 307
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: ''
+                title: ''
+                status: 0
+                detail: ''
+                instance: null
+  /auth/verify/resend:
+    post:
+      tags:
+        - Email Verification
+      summary: Resend verification email
+      description: Resends the email verification link to the authenticated user's email address.
+      operationId: resendVerification
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailVerificationStatus'
+              example:
+                email: ''
+                userid: 00000000-0000-0000-0000-000000000000
+                isverified: false
+                verificationurl: ''
+                expiresat: 0001-01-01T00:00:00Z
+                requestedat: 0001-01-01T00:00:00Z
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+              example:
+                error: unauthorized
+components:
+  schemas:
+    EmailVerificationStatus:
+      type: object
+      properties:
+        email:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        is_verified:
+          type: boolean
+        requested_at:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+          format: uuid
+        verification_url:
+          type: string
+    JWKResponse:
+      type: object
+      properties:
+        alg:
+          type: string
+        e:
+          type: string
+        kty:
+          type: string
+        'n':
+          type: string
+        use:
+          type: string
+    JWKSResponse:
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/JWKResponse'
+    ProblemDetails:
+      type: object
+      properties:
+        detail:
+          type: string
+        instance:
+          type: string
+        status:
+          type: integer
+        title:
+          type: string
+        type:
+          type: string
+    UserIdentity:
+      type: object
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        user_id:
+          type: string
+          format: uuid

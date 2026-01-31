@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout develop branch
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Workflow Cleanup
-        uses: fgrzl/actions/workflow-cleanup@v0.0.5
+        uses: fgrzl/actions/workflow-cleanup@v0.0.6
