@@ -80,7 +80,7 @@ jobs:
           tag: ${{ steps.version.outputs.semVer }}
 
       - name: Publish to npm (Trusted Publishing)
-        if: github.ref_type == 'tag' || github.ref == 'refs/heads/develop'
+        if: github.ref_type == 'tag' || github.ref == 'refs/heads/main'
         run: |
           npm version ${{ steps.version.outputs.majorMinorPatch }} --no-git-tag-version
           npm publish --provenance --tag ${{ steps.version.outputs.preReleaseLabel || 'latest' }}
