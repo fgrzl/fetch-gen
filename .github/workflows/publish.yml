@@ -12,16 +12,18 @@ permissions:
   id-token: write # required for npm Trusted Publishing
 
 jobs:
+  version:
+    uses: ./.github/workflows/version.yml
+
   TagAndPublish:
     name: Tag and Publish
+    needs: version
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
       - name: Checkout Full History
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -34,13 +36,6 @@ jobs:
         with:
           go-version: '1.25'
           cache: true
-
-      - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v4.2.0
-
-      - name: Calculate Version
-        id: version
-        uses: gittools/actions/gitversion/execute@v4.2.0
 
       - name: Install Dependencies
         run: npm ci
@@ -77,13 +72,13 @@ jobs:
         if: github.ref_type != 'tag'
         uses: fgrzl/actions/tag-commit@v0.0.6
         with:
-          tag: ${{ steps.version.outputs.semVer }}
+          tag: ${{ needs.version.outputs.package }}
 
       - name: Publish to npm (Trusted Publishing)
         if: github.ref_type == 'tag' || github.ref == 'refs/heads/main'
         run: |
-          npm version ${{ steps.version.outputs.majorMinorPatch }} --no-git-tag-version
-          npm publish --provenance --tag ${{ steps.version.outputs.preReleaseLabel || 'latest' }}
+          npm version ${{ needs.version.outputs.package }} --no-git-tag-version
+          npm publish --provenance --tag ${{ needs.version.outputs.preReleaseLabel || 'latest' }}
 
       - name: Prune Pre-release Tags
         uses: fgrzl/actions/prune-tags@v0.0.6
