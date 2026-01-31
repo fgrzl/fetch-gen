@@ -86,5 +86,5 @@ jobs:
           tag: v${{ steps.package-version.outputs.version }}
 
       - name: Publish to npm (Trusted Publishing)
-        if: github.ref_type == 'tag' || github.ref == 'refs/heads/develop'
+        if: github.ref_type == 'tag' || github.ref == 'refs/heads/main'
         run: npm publish --provenance
