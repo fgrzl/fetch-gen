@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
   workflow_call:
     outputs:
+      package:
+        description: 'NPM package version'
+        value: ${{ jobs.version.outputs.package }}
       semVer:
         description: 'Semantic version'
         value: ${{ jobs.version.outputs.semVer }}
@@ -26,6 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
+      package: ${{ steps.package-version.outputs.version }}
       semVer: ${{ steps.version.outputs.semVer }}
       preReleaseLabel: ${{ steps.version.outputs.preReleaseLabel }}
       major: ${{ steps.version.outputs.major }}
@@ -44,3 +48,10 @@ jobs:
       - name: Calculate Version
         id: version
         uses: gittools/actions/gitversion/execute@v4.2.0
+
+      - name: Calculate Package Version
+        id: package-version
+        run: |
+          VERSION="${{ steps.version.outputs.major }}.${{ steps.version.outputs.minor }}.${{ steps.version.outputs.preReleaseNumber }}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Package version: ${VERSION}"
