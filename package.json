@@ -1,6 +1,6 @@
 {
   "name": "@fgrzl/fetch-gen",
-  "version": "0.0.0",
+  "version": "1.2.0",
   "description": "Generate @fgrzl/fetch clients from OpenAPI spec",
   "author": "smiggleworth",
   "license": "MIT",
