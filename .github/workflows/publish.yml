@@ -23,19 +23,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get Version from Package.json
-        id: package-version
-        run: |
-          VERSION=$(npm pkg get version | tr -d '"')
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          
-          # Determine npm tag based on version
-          case "$VERSION" in
-            *-alpha*) echo "tag=alpha" >> $GITHUB_OUTPUT ;;
-            *-beta*)  echo "tag=beta" >> $GITHUB_OUTPUT ;;
-            *)        echo "tag=latest" >> $GITHUB_OUTPUT ;;
-          esac
-
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
@@ -78,6 +65,19 @@ jobs:
 
       - name: Run TypeScript Tests
         run: npm test
+
+      - name: Get Version from Package.json
+        id: package-version
+        run: |
+          VERSION=$(npm pkg get version | tr -d '"')
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+          # Determine npm tag based on version
+          case "$VERSION" in
+            *-alpha*) echo "tag=alpha" >> $GITHUB_OUTPUT ;;
+            *-beta*)  echo "tag=beta" >> $GITHUB_OUTPUT ;;
+            *)        echo "tag=latest" >> $GITHUB_OUTPUT ;;
+          esac
 
       - name: Tag Commit
         if: github.ref_type != 'tag'
