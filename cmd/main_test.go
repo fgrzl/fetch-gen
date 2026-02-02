@@ -31,13 +31,13 @@ func TestGenerateFullAPIWithComplexModel(t *testing.T) {
 	assert.Contains(t, code, "import type { FetchClient, FetchResponse }", "should import FetchResponse type")
 
 	// New query object pattern functions
-	assert.Contains(t, code, "getUsers: (query?: { page?: number; limit?: number; status?: \"active\" | \"inactive\" | \"banned\" }, options?: { signal?: AbortSignal; timeout?: number })", "should generate getUsers method with query object")
-	assert.Contains(t, code, "createUser: (body: CreateUserRequest, options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<User>>", "should generate createUser method")
-	assert.Contains(t, code, "updateUser: (id: string, body: UpdateUserRequest, options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<User>>", "should generate updateUser method")
-	assert.Contains(t, code, "deleteUser: (id: string, query?: { force?: boolean }, options?: { signal?: AbortSignal; timeout?: number })", "should generate deleteUser method with query object")
+	assert.Contains(t, code, "getUsers: (query?: { page?: number; limit?: number; status?: \"active\" | \"inactive\" | \"banned\" }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string })", "should generate getUsers method with query object")
+	assert.Contains(t, code, "createUser: (body: CreateUserRequest, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<User>>", "should generate createUser method")
+	assert.Contains(t, code, "updateUser: (id: string, body: UpdateUserRequest, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<User>>", "should generate updateUser method")
+	assert.Contains(t, code, "deleteUser: (id: string, query?: { force?: boolean }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string })", "should generate deleteUser method with query object")
 
 	// Multi-parameter path support
-	assert.Contains(t, code, "getUserPost: (user_id: string, post_id: string, query?: { include_comments?: boolean }, options?: { signal?: AbortSignal; timeout?: number })", "should handle multi-parameter paths with query objects")
+	assert.Contains(t, code, "getUserPost: (user_id: string, post_id: string, query?: { include_comments?: boolean }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string })", "should handle multi-parameter paths with query objects")
 	assert.Contains(t, code, "getTeamMember: (org_id: string, team_id: string, member_id: string", "should handle 3-parameter paths")
 
 	// Dynamic URL construction with query parameters
@@ -87,19 +87,19 @@ func TestGenerateRedirectResponses(t *testing.T) {
 	code := string(content)
 
 	// Check redirect responses (307) return boolean
-	assert.Contains(t, code, "ssoCallback: (provider: string, query?: { code?: string; state?: string }, options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<boolean>>", "307 redirect should return boolean")
-	assert.Contains(t, code, "ssoLogin: (provider: string, query?: { email?: string; return_url?: string }, options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<boolean>>", "307 redirect should return boolean")
-	assert.Contains(t, code, "verifyEmail: (query?: { email?: string; token?: string }, options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<boolean>>", "307 redirect should return boolean")
+	assert.Contains(t, code, "ssoCallback: (provider: string, query?: { code?: string; state?: string }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<boolean>>", "307 redirect should return boolean")
+	assert.Contains(t, code, "ssoLogin: (provider: string, query?: { email?: string; return_url?: string }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<boolean>>", "307 redirect should return boolean")
+	assert.Contains(t, code, "verifyEmail: (query?: { email?: string; token?: string }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<boolean>>", "307 redirect should return boolean")
 
 	// Check 204 No Content returns boolean
-	assert.Contains(t, code, "logout: (options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<boolean>>", "204 No Content should return boolean")
-	assert.Contains(t, code, "getJWKS: (options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<JWKSResponse>>", "should return typed response when 200 with content exists")
+	assert.Contains(t, code, "logout: (options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<boolean>>", "204 No Content should return boolean")
+	assert.Contains(t, code, "getJWKS: (options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<JWKSResponse>>", "should return typed response when 200 with content exists")
 
 	// Check normal JSON responses
-	assert.Contains(t, code, "detectSSOProviders: (query?: { email?: string }, options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<Array<string>>>", "should return array for 200 response")
-	assert.Contains(t, code, "getCurrentUser: (options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<UserIdentity>>", "should return UserIdentity for 200 response")
-	assert.Contains(t, code, "getVerificationStatus: (options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<EmailVerificationStatus>>", "should return EmailVerificationStatus for 200 response")
-	assert.Contains(t, code, "resendVerification: (options?: { signal?: AbortSignal; timeout?: number }): Promise<FetchResponse<EmailVerificationStatus>>", "should return EmailVerificationStatus for 200 response")
+	assert.Contains(t, code, "detectSSOProviders: (query?: { email?: string }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<Array<string>>>", "should return array for 200 response")
+	assert.Contains(t, code, "getCurrentUser: (options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<UserIdentity>>", "should return UserIdentity for 200 response")
+	assert.Contains(t, code, "getVerificationStatus: (options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<EmailVerificationStatus>>", "should return EmailVerificationStatus for 200 response")
+	assert.Contains(t, code, "resendVerification: (options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<EmailVerificationStatus>>", "should return EmailVerificationStatus for 200 response")
 
 	// Check generated interfaces
 	assert.Contains(t, code, "export interface EmailVerificationStatus", "should generate EmailVerificationStatus interface")

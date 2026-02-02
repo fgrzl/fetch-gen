@@ -411,8 +411,8 @@ func run() error {
 				}
 				args = append(args, fmt.Sprintf("body: %s", bodyType))
 			}
-			// Always allow passing AbortSignal/timeout through to the underlying client
-			args = append(args, "options?: { signal?: AbortSignal; timeout?: number }")
+			// Always allow passing AbortSignal/timeout/operationId through to the underlying client
+			args = append(args, "options?: { signal?: AbortSignal; timeout?: number; operationId?: string }")
 			return strings.Join(args, ", ")
 		},
 		"clientCall": func(op NamedOperation, urlExpr string) string {
@@ -676,7 +676,7 @@ export function createAdapter(client: FetchClient): {
 {{- if $op.HasBody}}
    * @param body - Request body
 {{- end}}
-	 * @param options - Request options (signal, timeout)
+	 * @param options - Request options (signal, timeout, operationId)
    * @returns Promise resolving to FetchResponse<{{responseType $op}}>
    */
   {{$op.ID}}: ({{argList $op}}) => Promise<FetchResponse<{{responseType $op}}>>;
