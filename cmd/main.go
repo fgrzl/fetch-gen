@@ -415,26 +415,26 @@ func run() error {
 			args = append(args, "options?: { signal?: AbortSignal; timeout?: number; operationId?: string }")
 			return strings.Join(args, ", ")
 		},
-		"clientCall": func(op NamedOperation, urlExpr string) string {
+		"clientCall": func(op NamedOperation, urlExpr string, optionsVar string) string {
 			// @fgrzl/fetch method signatures:
 			// - get/del/head: (url, params?, options?)
 			// - post/put/patch: (url, body?, headers?, options?)
 			switch op.Method {
 			case "get", "del", "head":
-				return fmt.Sprintf("return client.%s(%s, undefined, options);", op.Method, urlExpr)
+				return fmt.Sprintf("return client.%s(%s, undefined, %s);", op.Method, urlExpr, optionsVar)
 			case "post", "put", "patch":
 				bodyArg := "undefined"
 				if op.HasBody {
 					bodyArg = "body"
 				}
-				return fmt.Sprintf("return client.%s(%s, %s, undefined, options);", op.Method, urlExpr, bodyArg)
+				return fmt.Sprintf("return client.%s(%s, %s, undefined, %s);", op.Method, urlExpr, bodyArg, optionsVar)
 			default:
 				// Fallback: pass URL, optional body, then options
 				bodyArg := "undefined"
 				if op.HasBody {
 					bodyArg = "body"
 				}
-				return fmt.Sprintf("return client.%s(%s, %s, options);", op.Method, urlExpr, bodyArg)
+				return fmt.Sprintf("return client.%s(%s, %s, %s);", op.Method, urlExpr, bodyArg, optionsVar)
 			}
 		},
 		"responseType": func(op NamedOperation) string {
@@ -685,12 +685,13 @@ export function createAdapter(client: FetchClient): {
   return {
 {{- range $i, $op := .Ops}}
     {{$op.ID}}: ({{argList $op}}): Promise<FetchResponse<{{responseType $op}}>> => {
+      const finalOptions = { ...options, operationId: options?.operationId ?? '{{$op.ID}}' };
 {{- if hasQueryParams $op}}
       const queryString = query ? buildQueryParams(query) : '';
       const url = ` + "`" + `{{$op.DisplayPath}}` + "`" + ` + (queryString ? '?' + queryString : '');
-			{{clientCall $op "url"}}
+			{{clientCall $op "url" "finalOptions"}}
 {{- else}}
-	{{clientCall $op (printf "%c%s%c" 96 $op.DisplayPath 96)}}
+	{{clientCall $op (printf "%c%s%c" 96 $op.DisplayPath 96) "finalOptions"}}
 {{- end}}
     }{{if ne (add $i 1) (len $.Ops)}},{{end}}
 {{- end}}

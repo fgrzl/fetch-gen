@@ -42,10 +42,11 @@ func TestGenerateFullAPIWithComplexModel(t *testing.T) {
 
 	// Dynamic URL construction with query parameters
 	assert.Contains(t, code, "const url = `/users` + (queryString ? '?' + queryString : '');", "should build dynamic URLs for query params")
-	assert.Contains(t, code, "return client.get(url, undefined, options);", "should call GET with dynamic URL")
-	assert.Contains(t, code, "return client.post(`/users`, body, undefined, options);", "should call POST with static URL when no query params")
-	assert.Contains(t, code, "return client.put(`/users/${id}`, body, undefined, options);", "should call PUT with path params")
-	assert.Contains(t, code, "return client.del(url, undefined, options);", "should call DELETE with dynamic URL")
+	assert.Contains(t, code, "return client.get(url, undefined, finalOptions);", "should call GET with dynamic URL and finalOptions")
+	assert.Contains(t, code, "return client.post(`/users`, body, undefined, finalOptions);", "should call POST with static URL when no query params and finalOptions")
+	assert.Contains(t, code, "return client.put(`/users/${id}`, body, undefined, finalOptions);", "should call PUT with path params and finalOptions")
+	assert.Contains(t, code, "return client.del(url, undefined, finalOptions);", "should call DELETE with dynamic URL and finalOptions")
+	assert.Contains(t, code, "const finalOptions = { ...options, operationId: options?.operationId ?? 'getUsers' };", "should create finalOptions with operationId fallback")
 
 	// Query parameter handling with imported helper function
 	assert.Contains(t, code, "import { buildQueryParams } from '@fgrzl/fetch';", "should import buildQueryParams from @fgrzl/fetch")

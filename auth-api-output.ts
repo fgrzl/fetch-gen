@@ -132,72 +132,113 @@ export function createAdapter(client: FetchClient): {
       query?: { email?: string },
       options?: { signal?: AbortSignal; timeout?: number; operationId?: string }
     ): Promise<FetchResponse<Array<string>>> => {
+      const finalOptions = {
+        ...options,
+        operationId: options?.operationId ?? 'detectSSOProviders',
+      };
       const queryString = query ? buildQueryParams(query) : '';
       const url = `/api/v1/sso/detect` + (queryString ? '?' + queryString : '');
-      return client.get(url, undefined, options);
+      return client.get(url, undefined, finalOptions);
     },
     getJWKS: (options?: {
       signal?: AbortSignal;
       timeout?: number;
       operationId?: string;
     }): Promise<FetchResponse<JWKSResponse>> => {
-      return client.get(`/auth/.well-known/jwks.json`, undefined, options);
+      const finalOptions = {
+        ...options,
+        operationId: options?.operationId ?? 'getJWKS',
+      };
+      return client.get(`/auth/.well-known/jwks.json`, undefined, finalOptions);
     },
     ssoCallback: (
       provider: string,
       query?: { code?: string; state?: string },
       options?: { signal?: AbortSignal; timeout?: number; operationId?: string }
     ): Promise<FetchResponse<boolean>> => {
+      const finalOptions = {
+        ...options,
+        operationId: options?.operationId ?? 'ssoCallback',
+      };
       const queryString = query ? buildQueryParams(query) : '';
       const url =
         `/auth/callback/${provider}` + (queryString ? '?' + queryString : '');
-      return client.get(url, undefined, options);
+      return client.get(url, undefined, finalOptions);
     },
     ssoLogin: (
       provider: string,
       query?: { email?: string; return_url?: string },
       options?: { signal?: AbortSignal; timeout?: number; operationId?: string }
     ): Promise<FetchResponse<boolean>> => {
+      const finalOptions = {
+        ...options,
+        operationId: options?.operationId ?? 'ssoLogin',
+      };
       const queryString = query ? buildQueryParams(query) : '';
       const url =
         `/auth/login/${provider}` + (queryString ? '?' + queryString : '');
-      return client.get(url, undefined, options);
+      return client.get(url, undefined, finalOptions);
     },
     logout: (options?: {
       signal?: AbortSignal;
       timeout?: number;
       operationId?: string;
     }): Promise<FetchResponse<boolean>> => {
-      return client.get(`/auth/logout`, undefined, options);
+      const finalOptions = {
+        ...options,
+        operationId: options?.operationId ?? 'logout',
+      };
+      return client.get(`/auth/logout`, undefined, finalOptions);
     },
     getCurrentUser: (options?: {
       signal?: AbortSignal;
       timeout?: number;
       operationId?: string;
     }): Promise<FetchResponse<UserIdentity>> => {
-      return client.get(`/auth/me`, undefined, options);
+      const finalOptions = {
+        ...options,
+        operationId: options?.operationId ?? 'getCurrentUser',
+      };
+      return client.get(`/auth/me`, undefined, finalOptions);
     },
     getVerificationStatus: (options?: {
       signal?: AbortSignal;
       timeout?: number;
       operationId?: string;
     }): Promise<FetchResponse<EmailVerificationStatus>> => {
-      return client.get(`/auth/verification-status`, undefined, options);
+      const finalOptions = {
+        ...options,
+        operationId: options?.operationId ?? 'getVerificationStatus',
+      };
+      return client.get(`/auth/verification-status`, undefined, finalOptions);
     },
     verifyEmail: (
       query?: { email?: string; token?: string },
       options?: { signal?: AbortSignal; timeout?: number; operationId?: string }
     ): Promise<FetchResponse<boolean>> => {
+      const finalOptions = {
+        ...options,
+        operationId: options?.operationId ?? 'verifyEmail',
+      };
       const queryString = query ? buildQueryParams(query) : '';
       const url = `/auth/verify` + (queryString ? '?' + queryString : '');
-      return client.get(url, undefined, options);
+      return client.get(url, undefined, finalOptions);
     },
     resendVerification: (options?: {
       signal?: AbortSignal;
       timeout?: number;
       operationId?: string;
     }): Promise<FetchResponse<EmailVerificationStatus>> => {
-      return client.post(`/auth/verify/resend`, undefined, undefined, options);
+      const finalOptions = {
+        ...options,
+        operationId: options?.operationId ?? 'resendVerification',
+      };
+      return client.post(
+        `/auth/verify/resend`,
+        undefined,
+        undefined,
+        finalOptions
+      );
     },
   };
 }
