@@ -6,7 +6,11 @@
 
 Generate @fgrzl/fetch clients from OpenAPI spec.
 
-see -> https://github.com/fgrzl/fetch
+Companion client: [@fgrzl/fetch](https://github.com/fgrzl/fetch)
+
+## Documentation
+
+Guides: **[docs/](docs/README.md)** — [overview](docs/overview.md), [getting started](docs/getting-started.md), [CLI reference](docs/cli-reference.md)
 
 ## Usage
 
