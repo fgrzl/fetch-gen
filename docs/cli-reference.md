@@ -20,7 +20,7 @@ npx @fgrzl/fetch-gen --input <openapi.yaml> --output <path.ts> [options]
 ## Output
 
 - TypeScript types for schemas referenced by operations
-- Functions named from `operationId` (or derived names)
+- Functions named from OpenAPI `operationId` — operations **without** `operationId` are skipped (logged), not auto-renamed
 - `createAdapter(client)` export
 
 ## Regeneration
