@@ -12,6 +12,7 @@ on:
       - '*.go'
       - 'go.mod'
       - 'go.sum'
+      - '.golangci.yml'
       - '*.ts'
       - '*.js'
       - 'package.json'
@@ -30,6 +31,7 @@ on:
       - '*.go'
       - 'go.mod'
       - 'go.sum'
+      - '.golangci.yml'
       - '*.ts'
       - '*.js'
       - 'package.json'
@@ -69,6 +71,14 @@ jobs:
 
       - name: Tidy Go Modules
         run: go mod tidy
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
 
       - name: Download Go Dependencies
         run: go mod download

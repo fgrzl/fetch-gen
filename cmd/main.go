@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -44,9 +45,7 @@ func (st *SchemaType) UnmarshalYAML(node *yaml.Node) error {
 		st.Values = list
 		return nil
 	}
-	// Unknown shape; treat as unset
-	st.Values = nil
-	return nil
+	return fmt.Errorf("schema type: unsupported YAML shape")
 }
 
 func (st *SchemaType) UnmarshalJSON(data []byte) error {
@@ -69,8 +68,7 @@ func (st *SchemaType) UnmarshalJSON(data []byte) error {
 		st.Values = list
 		return nil
 	}
-	st.Values = nil
-	return nil
+	return fmt.Errorf("schema type: unsupported JSON shape")
 }
 
 func (st SchemaType) has(t string) bool {
@@ -214,17 +212,13 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("failed to get absolute path for output: %w", err)
 	}
-	err = os.MkdirAll(filepath.Dir(outputPath), 0755)
-	if err != nil {
-		return fmt.Errorf("failed to create output directory: %w", err)
-	}
 
 	instance := "@fgrzl/fetch"
 	if len(os.Args) >= 7 && os.Args[5] == "--instance" {
 		instance = strings.TrimSuffix(os.Args[6], ".ts")
 	}
 
-	data, err := os.ReadFile(inputPath)
+	data, err := readLocalFile(inputPath)
 	if err != nil {
 		return fmt.Errorf("failed to read input file: %w", err)
 	}
@@ -255,10 +249,11 @@ func run() error {
 			queryParams := []Parameter{}
 			displayPath := path
 			for _, p := range op.Parameters {
-				if p.In == "path" {
+				switch p.In {
+				case "path":
 					params = append(params, *p)
 					displayPath = strings.ReplaceAll(displayPath, "{"+p.Name+"}", fmt.Sprintf("${%s}", p.Name))
-				} else if p.In == "query" {
+				case "query":
 					queryParams = append(queryParams, *p)
 				}
 			}
@@ -301,16 +296,17 @@ func run() error {
 							break
 						}
 						// If there is content, try to resolve it
-						if jsonContent, ok := resp.Content["application/json"]; ok {
-							if jsonContent.Schema != nil {
-								resType = resolveType(jsonContent.Schema)
-								break
-							}
-						} else {
-							// Non-JSON redirect response
+						jsonContent, ok := resp.Content["application/json"]
+						if !ok {
 							resType = "boolean"
 							break
 						}
+						if jsonContent.Schema == nil {
+							resType = "boolean"
+							break
+						}
+						resType = resolveType(jsonContent.Schema)
+						break
 					}
 				}
 			}
@@ -346,12 +342,6 @@ func run() error {
 		}
 		return ops[i].DisplayPath < ops[j].DisplayPath
 	})
-
-	f, err := os.Create(outputPath)
-	if err != nil {
-		return fmt.Errorf("failed to create output file: %w", err)
-	}
-	defer f.Close()
 
 	funcs := template.FuncMap{
 		"tsType": resolveType,
@@ -484,13 +474,16 @@ func run() error {
 	}
 
 	tmpl := template.Must(template.New("api").Funcs(funcs).Parse(apiTemplate))
-	err = tmpl.Execute(f, map[string]any{
+	var out bytes.Buffer
+	if err := tmpl.Execute(&out, map[string]any{
 		"SortedSchemas": sortedSchemas,
 		"Ops":           ops,
 		"Instance":      instance,
-	})
-	if err != nil {
+	}); err != nil {
 		return fmt.Errorf("failed to execute template: %w", err)
+	}
+	if err := writeLocalFile(outputPath, out.Bytes()); err != nil {
+		return fmt.Errorf("failed to write output file: %w", err)
 	}
 
 	fmt.Printf("✅ Generated fetch client: %s\n", outputPath)
