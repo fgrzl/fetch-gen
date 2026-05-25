@@ -1,0 +1,25 @@
+openapi: 3.0.0
+info:
+  title: Invalid Path Parameter API
+  version: 1.0.0
+paths:
+  /broken/{id}:
+    get:
+      operationId: getBroken
+      summary: The path parameter name does not match the template
+      parameters:
+        - name: other
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean

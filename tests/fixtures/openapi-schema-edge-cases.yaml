@@ -1,0 +1,63 @@
+openapi: 3.1.0
+info:
+  title: Schema Edge Cases API
+  version: 1.0.0
+paths:
+  /edge-case:
+    get:
+      operationId: getEdgeCase
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InlineObjectRequiredness'
+components:
+  schemas:
+    InlineObjectRequiredness:
+      type: object
+      required:
+        - config
+      properties:
+        config:
+          type: object
+          required:
+            - baseUrl
+          properties:
+            baseUrl:
+              type: string
+            timeout:
+              type: integer
+            headers:
+              type: object
+              additionalProperties:
+                type: string
+    ObjectWithPropertiesAndAdditionalProperties:
+      type: object
+      required:
+        - kind
+      properties:
+        kind:
+          type: string
+        label:
+          type: string
+      additionalProperties:
+        type: boolean
+    AllOfWithSiblingProperties:
+      allOf:
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              type: string
+        - type: object
+          properties:
+            enabled:
+              type: boolean
+      required:
+        - source
+      properties:
+        source:
+          type: string

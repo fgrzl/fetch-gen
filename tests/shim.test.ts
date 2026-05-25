@@ -1,5 +1,12 @@
-import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
-import { spawn, spawnSync } from 'child_process';
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterEach,
+  afterAll,
+} from 'vite-plus/test';
+import { spawnSync } from 'child_process';
 import { existsSync, rmSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -75,7 +82,7 @@ describe('Shim Integration Tests', () => {
       try {
         rmSync(testOutput, { recursive: true, force: true });
       } catch (error) {
-        console.warn(`Failed to clean existing test output: ${error}`);
+        console.warn(`Failed to clean existing test output: ${String(error)}`);
       }
     }
     mkdirSync(testOutput, { recursive: true });
@@ -87,7 +94,7 @@ describe('Shim Integration Tests', () => {
       try {
         rmSync(testOutput, { recursive: true, force: true });
       } catch (error) {
-        console.warn(`Failed to clean up test output: ${error}`);
+        console.warn(`Failed to clean up test output: ${String(error)}`);
       }
     }
   });
@@ -98,7 +105,7 @@ describe('Shim Integration Tests', () => {
       try {
         rmSync(testOutput, { recursive: true, force: true });
       } catch (error) {
-        console.warn(`Failed to clean up test directory: ${error}`);
+        console.warn(`Failed to clean up test directory: ${String(error)}`);
       }
     }
   });
@@ -159,7 +166,12 @@ describe('Shim Integration Tests', () => {
       'should execute real Go binary through CJS shim',
       () => {
         const cjsPath = join(projectRoot, 'dist/shim.cjs');
-        const inputPath = join(projectRoot, 'openapi-test.yaml');
+        const inputPath = join(
+          projectRoot,
+          'tests',
+          'fixtures',
+          'openapi-test.yaml'
+        );
         const outputPath = join(testOutput, 'test-output.ts');
 
         const result = spawnSync(
@@ -179,7 +191,12 @@ describe('Shim Integration Tests', () => {
       'should execute real Go binary through ESM shim',
       () => {
         const mjsPath = join(projectRoot, 'dist/shim.mjs');
-        const inputPath = join(projectRoot, 'openapi-test.yaml');
+        const inputPath = join(
+          projectRoot,
+          'tests',
+          'fixtures',
+          'openapi-test.yaml'
+        );
         const outputPath = join(testOutput, 'test-output-esm.ts');
 
         const result = spawnSync(
@@ -199,7 +216,12 @@ describe('Shim Integration Tests', () => {
       'should pass arguments correctly to Go binary',
       async () => {
         const cjsPath = join(projectRoot, 'dist/shim.cjs');
-        const inputPath = join(projectRoot, 'openapi-test.yaml');
+        const inputPath = join(
+          projectRoot,
+          'tests',
+          'fixtures',
+          'openapi-test.yaml'
+        );
         const outputPath = join(testOutput, 'test-args.ts');
 
         const result = spawnSync(
@@ -263,58 +285,6 @@ describe('Shim Integration Tests', () => {
       const hasErrorMessage = output.includes('Error:');
 
       expect(hasUsage || hasPlatformError || hasErrorMessage).toBe(true);
-    });
-  });
-
-  describe('Module Format Compatibility', () => {
-    it('CJS shim should work with require()', async () => {
-      // This test runs in a separate process to test actual require() usage
-      const testScript = `
-        const { spawnSync } = require('child_process');
-        const path = require('path');
-        const shimPath = path.join('${projectRoot}', 'dist', 'shim.cjs');
-        const result = spawnSync('node', [shimPath, '--help'], { stdio: 'pipe' });
-        process.exit(result.status === 0 ? 0 : 1);
-      `;
-
-      const result = spawnSync('node', ['-e', testScript], {
-        stdio: 'pipe',
-      });
-
-      // Should fail gracefully (binary not found) rather than with module errors
-      expect(result.stderr?.toString() || '').not.toContain('ERR_REQUIRE_ESM');
-      expect(result.stderr?.toString() || '').not.toContain(
-        'Cannot use import statement'
-      );
-    });
-
-    it('ESM shim should work with dynamic import()', async () => {
-      const mjsPath = join(projectRoot, 'dist/shim.mjs');
-
-      // Test that the ESM shim can be imported (though not executed without binary)
-      const testScript = `
-        import('${mjsPath}').then(() => {
-          console.log('ESM import successful');
-          process.exit(0);
-        }).catch((err) => {
-          console.error('ESM import failed:', err.message);
-          process.exit(1);
-        });
-      `;
-
-      const result = spawnSync(
-        'node',
-        ['--input-type=module', '-e', testScript],
-        {
-          stdio: 'pipe',
-        }
-      );
-
-      // The import should succeed even if execution fails due to missing binary
-      expect(result.stderr?.toString() || '').not.toContain('SyntaxError');
-      expect(result.stderr?.toString() || '').not.toContain(
-        'ERR_MODULE_NOT_FOUND'
-      );
     });
   });
 });

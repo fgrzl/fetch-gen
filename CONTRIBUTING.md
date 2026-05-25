@@ -11,7 +11,7 @@ Thanks for contributing to @fgrzl/fetch-gen.
 ## Pull requests
 
 - Update `docs/cli-reference.md` when adding flags or output shape changes.
-- Regenerate golden fixtures when codegen output changes intentionally.
+- Regenerate golden fixtures in `tests/artifacts/` when codegen output changes intentionally.
 - Keep generated TypeScript compatible with the current [@fgrzl/fetch](https://github.com/fgrzl/fetch) major version.
 
 ## Changelog

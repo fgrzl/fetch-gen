@@ -6,6 +6,7 @@ yarn-error.log*
 
 # Node build artifacts
 dist/
+tests/artifacts/
 
 # Go
 bin/

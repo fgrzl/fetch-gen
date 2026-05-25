@@ -1,44 +1,43 @@
 {
   "name": "@fgrzl/fetch-gen",
-  "version": "1.3.2",
+  "version": "2.0.0",
   "description": "Generate @fgrzl/fetch clients from OpenAPI spec",
-  "author": "smiggleworth",
+  "keywords": [
+    "codegen",
+    "fetch",
+    "generator",
+    "go",
+    "openapi"
+  ],
+  "homepage": "https://github.com/fgrzl/fetch-gen#readme",
   "license": "MIT",
+  "author": "smiggleworth",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fgrzl/fetch-gen.git"
   },
-  "homepage": "https://github.com/fgrzl/fetch-gen#readme",
-  "keywords": [
-    "fetch",
-    "generator",
-    "openapi",
-    "codegen",
-    "go"
-  ],
-  "type": "module",
   "bin": {
     "fetch-gen": "dist/shim.cjs"
-  },
-  "exports": {
-    "import": "./dist/shim.mjs",
-    "require": "./dist/shim.cjs"
   },
   "files": [
     "dist"
   ],
+  "type": "module",
+  "exports": {
+    "import": "./dist/shim.mjs",
+    "require": "./dist/shim.cjs"
+  },
   "scripts": {
-    "build": "tsup",
-    "clean": "rimraf dist node_modules",
-    "test": "vitest run",
-    "fmt": "prettier --write ."
+    "build": "vp pack",
+    "build:shims": "vp pack",
+    "clean": "npx rimraf dist node_modules",
+    "test": "vp test",
+    "fmt": "vp fmt",
+    "lint": "vp lint"
   },
   "devDependencies": {
     "@types/node": "^25.2.0",
-    "prettier": "^3.8.1",
-    "rimraf": "^6.1.2",
-    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "vite-plus": "^0.1.22"
   }
 }

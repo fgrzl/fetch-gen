@@ -6,15 +6,15 @@ npx @fgrzl/fetch-gen --input <openapi.yaml> --output <path.ts> [options]
 
 ## Required flags
 
-| Flag | Description |
-|------|-------------|
-| `--input` | Path to OpenAPI 3 YAML or JSON |
-| `--output` | TypeScript file to write |
+| Flag       | Description                    |
+| ---------- | ------------------------------ |
+| `--input`  | Path to OpenAPI 3 YAML or JSON |
+| `--output` | TypeScript file to write       |
 
 ## Optional flags
 
-| Flag | Description |
-|------|-------------|
+| Flag         | Description                                                           |
+| ------------ | --------------------------------------------------------------------- |
 | `--instance` | Import path to a custom fetch client module (default: `@fgrzl/fetch`) |
 
 ## Output
