@@ -1,5 +1,5 @@
 ﻿# fgrzl standard golangci-lint config (shared across Go repositories)
-version: "2"
+version: '2'
 
 run:
   timeout: 5m
@@ -64,29 +64,29 @@ linters:
     rules:
       - linters:
           - gosec
-        text: "G404"
+        text: 'G404'
       - linters: [revive]
         path: _test\.go$
-        text: "redefines-builtin-id"
+        text: 'redefines-builtin-id'
       - linters: [revive]
         path: _test\.go$
-        text: "^unused-parameter:"
+        text: '^unused-parameter:'
       - path: _test\.go$
         linters:
           - gosec
-        text: "G306"
+        text: 'G306'
       - path: _test\.go$
         linters:
           - gosec
-        text: "G304"
+        text: 'G304'
       - path: _test\.go$
         linters:
           - gosec
-        text: "G115"
+        text: 'G115'
       - path: (^|\\/)test(\\/|\\\\)
         linters:
           - gosec
-        text: "G115"
+        text: 'G115'
       - path: (^|[\\/])bench([\\/]).*\.go$
         linters:
           - bodyclose
@@ -96,20 +96,20 @@ linters:
       - path: _test\.go$
         linters:
           - gosec
-        text: "G124"
+        text: 'G124'
       - path: (^|[\\/])test([\\/])
         linters:
           - gosec
-        text: "G304"
+        text: 'G304'
       - path: (^|[\\/])test([\\/])
         linters:
           - gosec
-        text: "G204"
+        text: 'G204'
       # Platform trust-store installers run validated certutil/security/sudo with fixed argv.
       - path: (^|[\\/])internal[\\/]trust[\\/]
         linters:
           - gosec
-        text: "G204"
+        text: 'G204'
 
 issues:
   max-issues-per-linter: 0

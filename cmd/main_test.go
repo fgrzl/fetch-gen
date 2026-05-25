@@ -10,7 +10,7 @@ import (
 
 func TestGenerateFullAPIWithComplexModel(t *testing.T) {
 	tmpDir := t.TempDir()
-	inputPath := filepath.Join("..", "openapi-test.yaml")
+	inputPath := filepath.Join("..", "tests", "fixtures", "openapi-test.yaml")
 	outputPath := filepath.Join(tmpDir, "api.ts")
 
 	os.Args = []string{
@@ -59,19 +59,19 @@ func TestGenerateFullAPIWithComplexModel(t *testing.T) {
 
 	// Check for nested object in profile (should be inlined)
 	assert.Contains(t, code, `profile?: {`, "should have profile object")
-	assert.Contains(t, code, `website: string`, "should have website property")
-	assert.Contains(t, code, `avatar: string`, "should have avatar property")
-	assert.Contains(t, code, `bio: string`, "should have bio property")
-	assert.Contains(t, code, `age: number`, "should have age property")
-	assert.Contains(t, code, `location: string`, "should have location property")
-	assert.Contains(t, code, `preferences: {`, "should have preferences nested object")
-	assert.Contains(t, code, `theme: "light" | "dark" | "auto"`, "should have theme enum")
-	assert.Contains(t, code, `notifications: boolean`, "should have notifications boolean")
+	assert.Contains(t, code, `website?: string`, "should have website property")
+	assert.Contains(t, code, `avatar?: string`, "should have avatar property")
+	assert.Contains(t, code, `bio?: string`, "should have bio property")
+	assert.Contains(t, code, `age?: number`, "should have age property")
+	assert.Contains(t, code, `location?: string`, "should have location property")
+	assert.Contains(t, code, `preferences?: {`, "should have preferences nested object")
+	assert.Contains(t, code, `theme?: "light" | "dark" | "auto"`, "should have theme enum")
+	assert.Contains(t, code, `notifications?: boolean`, "should have notifications boolean")
 }
 
 func TestGenerateRedirectResponses(t *testing.T) {
 	tmpDir := t.TempDir()
-	inputPath := filepath.Join("..", "auth-api.yaml")
+	inputPath := filepath.Join("..", "tests", "fixtures", "auth-api.yaml")
 	outputPath := filepath.Join(tmpDir, "auth-api.ts")
 
 	os.Args = []string{
@@ -111,7 +111,7 @@ func TestGenerateRedirectResponses(t *testing.T) {
 
 func TestGenerateAnyOfSchemaAsTypeAlias(t *testing.T) {
 	tmpDir := t.TempDir()
-	inputPath := filepath.Join("..", "openapi-anyof.yaml")
+	inputPath := filepath.Join("..", "tests", "fixtures", "openapi-anyof.yaml")
 	outputPath := filepath.Join(tmpDir, "anyof.ts")
 
 	os.Args = []string{
@@ -138,7 +138,7 @@ func TestGenerateAnyOfSchemaAsTypeAlias(t *testing.T) {
 
 func TestGenerateNullableAndNonStringEnums(t *testing.T) {
 	tmpDir := t.TempDir()
-	inputPath := filepath.Join("..", "openapi-nullable-enum.yaml")
+	inputPath := filepath.Join("..", "tests", "fixtures", "openapi-nullable-enum.yaml")
 	outputPath := filepath.Join(tmpDir, "nullable-enum.ts")
 
 	os.Args = []string{
@@ -161,4 +161,27 @@ func TestGenerateNullableAndNonStringEnums(t *testing.T) {
 	assert.Contains(t, code, "status: \"active\" | \"inactive\" | null;", "should include null in string enum")
 	assert.Contains(t, code, "count?: 0 | 1 | 2;", "should emit numeric enum literals")
 	assert.Contains(t, code, "flag?: true | false;", "should emit boolean enum literals")
+}
+
+func TestGenerateSchemaEdgeCases(t *testing.T) {
+	tmpDir := t.TempDir()
+	inputPath := filepath.Join("..", "tests", "fixtures", "openapi-schema-edge-cases.yaml")
+	outputPath := filepath.Join(tmpDir, "schema-edge-cases.ts")
+
+	os.Args = []string{
+		"fetch-gen",
+		"--input", inputPath,
+		"--output", outputPath,
+	}
+
+	err := run()
+	assert.NoError(t, err, "should run successfully")
+
+	content, err := os.ReadFile(outputPath)
+	assert.NoError(t, err, "should generate schema-edge-cases.ts")
+	code := string(content)
+
+	assert.Contains(t, code, `config: { baseUrl: string; headers?: Record<string, string>; timeout?: number };`, "inline object schemas should honor their own required fields")
+	assert.Contains(t, code, `export type ObjectWithPropertiesAndAdditionalProperties = { kind: string; label?: string } & Record<string, boolean>;`, "objects with declared properties and additionalProperties should keep both surfaces")
+	assert.Contains(t, code, `export type AllOfWithSiblingProperties = { id: string } & { enabled?: boolean } & { source: string };`, "allOf schemas should include sibling properties and required fields")
 }

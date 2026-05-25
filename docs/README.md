@@ -4,11 +4,11 @@
 
 ## Start here
 
-| Document | Description |
-|----------|-------------|
-| [Overview](overview.md) | Codegen model and output layout |
+| Document                              | Description                      |
+| ------------------------------------- | -------------------------------- |
+| [Overview](overview.md)               | Codegen model and output layout  |
 | [Getting started](getting-started.md) | CLI, package.json scripts, usage |
-| [CLI reference](cli-reference.md) | Flags and options |
+| [CLI reference](cli-reference.md)     | Flags and options                |
 
 ## Related
 
