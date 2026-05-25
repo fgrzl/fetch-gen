@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func generateCodeFromFixture(t *testing.T, fixture string, instance string) string {
+func generateCodeFromFixture(t *testing.T, fixture string) string {
 	t.Helper()
 
 	fixturePath, err := filepath.Abs(filepath.Join("..", "..", "tests", "fixtures", fixture))
@@ -24,7 +24,7 @@ func generateCodeFromFixture(t *testing.T, fixture string, instance string) stri
 	api, err := parser.ParseDocument(fixturePath, content)
 	require.NoError(t, err)
 
-	output, err := generator.Generate(api, instance)
+	output, err := generator.Generate(api, "")
 	require.NoError(t, err)
 
 	return string(output)
@@ -64,7 +64,7 @@ func TestShouldExportCreateAdapterGivenEmptyOpenAPIDocumentWhenGeneratingThenEmi
 }
 
 func TestShouldGenerateQueryObjectGivenComplexOpenAPIDocumentWhenGeneratingThenUseQueryParams(t *testing.T) {
-	code := generateCodeFromFixture(t, "openapi-test.yaml", "")
+	code := generateCodeFromFixture(t, "openapi-test.yaml")
 
 	assert.Contains(t, code, "getUsers: (query?: { page?: number; limit?: number; status?: \"active\" | \"inactive\" | \"banned\" }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string })")
 	assert.Contains(t, code, "import { buildQueryParams } from '@fgrzl/fetch';")
@@ -72,26 +72,26 @@ func TestShouldGenerateQueryObjectGivenComplexOpenAPIDocumentWhenGeneratingThenU
 }
 
 func TestShouldGenerateRequestBodyGivenComplexOpenAPIDocumentWhenGeneratingThenIncludeBodyArgument(t *testing.T) {
-	code := generateCodeFromFixture(t, "openapi-test.yaml", "")
+	code := generateCodeFromFixture(t, "openapi-test.yaml")
 
 	assert.Contains(t, code, "createUser: (body: CreateUserRequest, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<User>>")
 }
 
 func TestShouldGeneratePathParametersGivenComplexOpenAPIDocumentWhenGeneratingThenIncludePathArguments(t *testing.T) {
-	code := generateCodeFromFixture(t, "openapi-test.yaml", "")
+	code := generateCodeFromFixture(t, "openapi-test.yaml")
 
 	assert.Contains(t, code, "updateUser: (id: string, body: UpdateUserRequest, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<User>>")
 	assert.Contains(t, code, "getTeamMember: (org_id: string, team_id: string, member_id: string")
 }
 
 func TestShouldGenerateDeleteOperationGivenComplexOpenAPIDocumentWhenGeneratingThenIncludeQueryArguments(t *testing.T) {
-	code := generateCodeFromFixture(t, "openapi-test.yaml", "")
+	code := generateCodeFromFixture(t, "openapi-test.yaml")
 
 	assert.Contains(t, code, "deleteUser: (id: string, query?: { force?: boolean }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string })")
 }
 
 func TestShouldGenerateUserSchemaGivenComplexOpenAPIDocumentWhenGeneratingThenEmitNestedProperties(t *testing.T) {
-	code := generateCodeFromFixture(t, "openapi-test.yaml", "")
+	code := generateCodeFromFixture(t, "openapi-test.yaml")
 
 	assert.Contains(t, code, `status: "active" | "inactive" | "banned" | "pending";`)
 	assert.Contains(t, code, `tags?: Array<string>;`)
@@ -103,7 +103,7 @@ func TestShouldGenerateUserSchemaGivenComplexOpenAPIDocumentWhenGeneratingThenEm
 }
 
 func TestShouldGenerateBooleanResponsesGivenAuthApiWhenGeneratingThenReturnBoolean(t *testing.T) {
-	code := generateCodeFromFixture(t, "auth-api.yaml", "")
+	code := generateCodeFromFixture(t, "auth-api.yaml")
 
 	assert.Contains(t, code, "ssoCallback: (provider: string, query?: { code?: string; state?: string }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<boolean>>")
 	assert.Contains(t, code, "ssoLogin: (provider: string, query?: { email?: string; return_url?: string }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<boolean>>")
@@ -112,7 +112,7 @@ func TestShouldGenerateBooleanResponsesGivenAuthApiWhenGeneratingThenReturnBoole
 }
 
 func TestShouldGenerateTypedResponsesGivenAuthApiWhenGeneratingThenReturnResponseTypes(t *testing.T) {
-	code := generateCodeFromFixture(t, "auth-api.yaml", "")
+	code := generateCodeFromFixture(t, "auth-api.yaml")
 
 	assert.Contains(t, code, "getJWKS: (options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<JWKSResponse>>")
 	assert.Contains(t, code, "detectSSOProviders: (query?: { email?: string }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<Array<string>>>")
@@ -126,7 +126,7 @@ func TestShouldGenerateTypedResponsesGivenAuthApiWhenGeneratingThenReturnRespons
 }
 
 func TestShouldGenerateAnyOfSchemaGivenUnionSchemaWhenGeneratingThenEmitTypeAlias(t *testing.T) {
-	code := generateCodeFromFixture(t, "openapi-anyof.yaml", "")
+	code := generateCodeFromFixture(t, "openapi-anyof.yaml")
 
 	assert.Contains(t, code, "export type Pet = Cat | Dog;")
 	assert.NotContains(t, code, "export interface Pet")
@@ -135,7 +135,7 @@ func TestShouldGenerateAnyOfSchemaGivenUnionSchemaWhenGeneratingThenEmitTypeAlia
 }
 
 func TestShouldGenerateNullableAndNonStringEnumsGivenNullableEnumSchemaWhenGeneratingThenIncludeNull(t *testing.T) {
-	code := generateCodeFromFixture(t, "openapi-nullable-enum.yaml", "")
+	code := generateCodeFromFixture(t, "openapi-nullable-enum.yaml")
 
 	assert.Contains(t, code, "export type MaybeString = string | null;")
 	assert.Contains(t, code, "status: \"active\" | \"inactive\" | null;")
@@ -144,7 +144,7 @@ func TestShouldGenerateNullableAndNonStringEnumsGivenNullableEnumSchemaWhenGener
 }
 
 func TestShouldGenerateSchemaEdgeCasesGivenMixedSchemaSurfacesWhenGeneratingThenPreserveDeclaredShape(t *testing.T) {
-	code := generateCodeFromFixture(t, "openapi-schema-edge-cases.yaml", "")
+	code := generateCodeFromFixture(t, "openapi-schema-edge-cases.yaml")
 
 	assert.Contains(t, code, `config: { baseUrl: string; headers?: Record<string, string>; timeout?: number };`)
 	assert.Contains(t, code, `export type ObjectWithPropertiesAndAdditionalProperties = { kind: string; label?: string } & Record<string, boolean>;`)

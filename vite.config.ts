@@ -16,6 +16,13 @@ export default defineConfig({
       typeCheck: true,
     },
   },
+  test: {
+    globals: true,
+    hookTimeout: 30000,
+    environment: 'node',
+    include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts}'],
+    exclude: ['tests/fixtures/**'],
+  },
   pack: {
     entry: ['src/shim.ts'],
     format: ['esm', 'cjs'],

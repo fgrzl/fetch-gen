@@ -1,4 +1,11 @@
-import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterEach,
+  afterAll,
+} from 'vite-plus/test';
 import { spawnSync } from 'child_process';
 import { existsSync, rmSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';

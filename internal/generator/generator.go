@@ -334,23 +334,11 @@ func extractRefName(ref string) string {
 	return parts[len(parts)-1]
 }
 
-func componentSchemaRefName(ref string) (string, bool) {
-	const prefix = "#/components/schemas/"
-	if !strings.HasPrefix(ref, prefix) {
-		return "", false
-	}
-	name := strings.TrimPrefix(ref, prefix)
-	if name == "" || strings.Contains(name, "/") {
-		return "", false
-	}
-	return name, true
-}
-
 func requestTypeForOperation(op *apitypes.Operation) string {
 	if op == nil || op.RequestBody == nil {
 		return ""
 	}
-	schema, _ := requestContentSchema(op.RequestBody.Content)
+	schema := requestContentSchema(op.RequestBody.Content)
 	if schema == nil {
 		return ""
 	}
@@ -367,7 +355,7 @@ func responseTypeForOperation(op *apitypes.Operation) string {
 			if code == "204" {
 				return "boolean"
 			}
-			schema, _ := responseContentSchema(resp.Content)
+			schema := responseContentSchema(resp.Content)
 			if schema != nil {
 				return resolveType(schema)
 			}
@@ -379,7 +367,7 @@ func responseTypeForOperation(op *apitypes.Operation) string {
 			if len(resp.Content) == 0 {
 				return "boolean"
 			}
-			schema, _ := responseContentSchema(resp.Content)
+			schema := responseContentSchema(resp.Content)
 			if schema != nil {
 				return resolveType(schema)
 			}
@@ -390,12 +378,12 @@ func responseTypeForOperation(op *apitypes.Operation) string {
 	return "any"
 }
 
-func requestContentSchema(content map[string]*apitypes.MediaType) (*apitypes.Schema, string) {
+func requestContentSchema(content map[string]*apitypes.MediaType) *apitypes.Schema {
 	if content == nil {
-		return nil, ""
+		return nil
 	}
 	if media, ok := content["application/json"]; ok && media != nil && media.Schema != nil {
-		return media.Schema, "application/json"
+		return media.Schema
 	}
 	keys := make([]string, 0, len(content))
 	for key := range content {
@@ -405,18 +393,18 @@ func requestContentSchema(content map[string]*apitypes.MediaType) (*apitypes.Sch
 	for _, key := range keys {
 		media := content[key]
 		if media != nil && media.Schema != nil {
-			return media.Schema, key
+			return media.Schema
 		}
 	}
-	return nil, ""
+	return nil
 }
 
-func responseContentSchema(content map[string]apitypes.MediaType) (*apitypes.Schema, string) {
+func responseContentSchema(content map[string]apitypes.MediaType) *apitypes.Schema {
 	if content == nil {
-		return nil, ""
+		return nil
 	}
 	if media, ok := content["application/json"]; ok && media.Schema != nil {
-		return media.Schema, "application/json"
+		return media.Schema
 	}
 	keys := make([]string, 0, len(content))
 	for key := range content {
@@ -426,10 +414,10 @@ func responseContentSchema(content map[string]apitypes.MediaType) (*apitypes.Sch
 	for _, key := range keys {
 		media := content[key]
 		if media.Schema != nil {
-			return media.Schema, key
+			return media.Schema
 		}
 	}
-	return nil, ""
+	return nil
 }
 
 func hasOwnSchemaSurface(s *apitypes.Schema) bool {
