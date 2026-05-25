@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+	"unicode"
 
 	apitypes "github.com/fgrzl/fetch-gen/internal/types"
 )
@@ -17,6 +18,7 @@ type namedOperation struct {
 	PathParams   []apitypes.Parameter
 	QueryParams  []apitypes.Parameter
 	HasBody      bool
+	BodyRequired bool
 	RequestType  string
 	ResponseType string
 	Description  string
@@ -75,6 +77,7 @@ func Generate(api *apitypes.OpenAPI, instance string) ([]byte, error) {
 				PathParams:   params,
 				QueryParams:  queryParams,
 				HasBody:      op.RequestBody != nil,
+				BodyRequired: op.RequestBody != nil && op.RequestBody.Required,
 				RequestType:  reqType,
 				ResponseType: resType,
 				Description:  description,
@@ -129,17 +132,25 @@ func Generate(api *apitypes.OpenAPI, instance string) ([]byte, error) {
 					if p.Required {
 						optional = ""
 					}
-					queryProps = append(queryProps, fmt.Sprintf("%s%s: %s", p.Name, optional, paramType))
+					queryProps = append(queryProps, fmt.Sprintf("%s%s: %s", tsPropertyKey(p.Name), optional, paramType))
 				}
 				queryType := fmt.Sprintf("{ %s }", strings.Join(queryProps, "; "))
-				args = append(args, fmt.Sprintf("query?: %s", queryType))
+				if hasRequiredQueryParams(op) {
+					args = append(args, fmt.Sprintf("query: %s", queryType))
+				} else {
+					args = append(args, fmt.Sprintf("query?: %s", queryType))
+				}
 			}
 			if op.HasBody {
 				bodyType := "any"
 				if op.RequestType != "" {
 					bodyType = op.RequestType
 				}
-				args = append(args, fmt.Sprintf("body: %s", bodyType))
+				if op.BodyRequired {
+					args = append(args, fmt.Sprintf("body: %s", bodyType))
+				} else {
+					args = append(args, fmt.Sprintf("body?: %s", bodyType))
+				}
 			}
 			args = append(args, "options?: { signal?: AbortSignal; timeout?: number; operationId?: string }")
 			return strings.Join(args, ", ")
@@ -186,6 +197,8 @@ func Generate(api *apitypes.OpenAPI, instance string) ([]byte, error) {
 			}
 			return false
 		},
+		"tsPropertyKey":   tsPropertyKey,
+		"tsStringLiteral": tsStringLiteral,
 	}
 
 	sortedSchemaNames := []string{}
@@ -329,6 +342,44 @@ func containsString(slice []string, item string) bool {
 	return false
 }
 
+func isTSIdentifier(name string) bool {
+	if name == "" {
+		return false
+	}
+	for index, r := range name {
+		if index == 0 {
+			if r != '_' && r != '$' && !unicode.IsLetter(r) {
+				return false
+			}
+			continue
+		}
+		if r != '_' && r != '$' && !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			return false
+		}
+	}
+	return true
+}
+
+func tsPropertyKey(name string) string {
+	if isTSIdentifier(name) {
+		return name
+	}
+	return fmt.Sprintf("%q", name)
+}
+
+func tsStringLiteral(value string) string {
+	return fmt.Sprintf("%q", value)
+}
+
+func hasRequiredQueryParams(op namedOperation) bool {
+	for _, p := range op.QueryParams {
+		if p.Required {
+			return true
+		}
+	}
+	return false
+}
+
 func extractRefName(ref string) string {
 	parts := strings.Split(ref, "/")
 	return parts[len(parts)-1]
@@ -448,7 +499,7 @@ func resolveObjectType(s *apitypes.Schema) string {
 		if containsString(s.Required, name) {
 			optional = ""
 		}
-		props = append(props, fmt.Sprintf("%s%s: %s", name, optional, resolveType(prop)))
+		props = append(props, fmt.Sprintf("%s%s: %s", tsPropertyKey(name), optional, resolveType(prop)))
 	}
 
 	objectLiteral := ""
@@ -523,13 +574,13 @@ export function createAdapter(client: FetchClient): {
 	 * @param options - Request options (signal, timeout, operationId)
    * @returns Promise resolving to FetchResponse<{{responseType $op}}>
    */
-  {{$op.ID}}: ({{argList $op}}) => Promise<FetchResponse<{{responseType $op}}>>;
+	{{tsPropertyKey $op.ID}}: ({{argList $op}}) => Promise<FetchResponse<{{responseType $op}}>>;
 {{- end}}
 } {
   return {
 {{- range $i, $op := .Ops}}
-    {{$op.ID}}: ({{argList $op}}): Promise<FetchResponse<{{responseType $op}}>> => {
-      const finalOptions = { ...options, operationId: options?.operationId ?? '{{$op.ID}}' };
+		{{tsPropertyKey $op.ID}}: ({{argList $op}}): Promise<FetchResponse<{{responseType $op}}>> => {
+		const finalOptions = { ...options, operationId: options?.operationId ?? {{tsStringLiteral $op.ID}} };
 {{- if hasQueryParams $op}}
       const queryString = query ? buildQueryParams(query) : '';
       const url = ` + "`" + `{{$op.DisplayPath}}` + "`" + ` + (queryString ? '?' + queryString : '');
@@ -560,7 +611,7 @@ export interface {{$name}} {
   /** {{ $def.Description }} */
   {{- end }}
   {{- $isRequired := contains $schema.Required $prop }}
-  {{$prop}}{{if not $isRequired}}?{{end}}: {{ tsType $def }};
+	{{tsPropertyKey $prop}}{{if not $isRequired}}?{{end}}: {{ tsType $def }};
 {{- end }}
 }
 {{- end}}

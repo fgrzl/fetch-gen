@@ -131,7 +131,8 @@ type Operation struct {
 }
 
 type RequestBodyWrapper struct {
-	Content map[string]*MediaType `json:"content" yaml:"content"`
+	Required bool                  `json:"required" yaml:"required"`
+	Content  map[string]*MediaType `json:"content" yaml:"content"`
 }
 
 type MediaType struct {

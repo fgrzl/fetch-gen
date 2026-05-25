@@ -30,10 +30,10 @@ func generateCodeFromFixture(t *testing.T, fixture string) string {
 	return string(output)
 }
 
-func generateCodeFromAPI(t *testing.T, api *apitypes.OpenAPI, instance string) string {
+func generateCodeFromAPI(t *testing.T, api *apitypes.OpenAPI) string {
 	t.Helper()
 
-	output, err := generator.Generate(api, instance)
+	output, err := generator.Generate(api, "")
 	require.NoError(t, err)
 
 	return string(output)
@@ -69,6 +69,99 @@ func TestShouldGenerateQueryObjectGivenComplexOpenAPIDocumentWhenGeneratingThenU
 	assert.Contains(t, code, "getUsers: (query?: { page?: number; limit?: number; status?: \"active\" | \"inactive\" | \"banned\" }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string })")
 	assert.Contains(t, code, "import { buildQueryParams } from '@fgrzl/fetch';")
 	assert.Contains(t, code, "const queryString = query ? buildQueryParams(query) : '';")
+}
+
+func TestShouldQuoteInvalidOperationIdentifiersGivenHyphenatedOperationIdWhenGeneratingThenEscapeAdapterKey(t *testing.T) {
+	code := generateCodeFromAPI(t, &apitypes.OpenAPI{
+		Paths: map[string]map[string]*apitypes.Operation{
+			"/users": {
+				"get": {
+					OperationID: "get-user",
+					Responses: map[string]*apitypes.Response{
+						"204": {Description: "No Content"},
+					},
+				},
+			},
+		},
+	})
+
+	assert.Contains(t, code, `"get-user": (options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<boolean>>`)
+	assert.Contains(t, code, `operationId: options?.operationId ?? "get-user"`)
+}
+
+func TestShouldQuoteInvalidQueryParameterNamesGivenRequiredHyphenatedQueryKeyWhenGeneratingThenEscapeKeys(t *testing.T) {
+	code := generateCodeFromAPI(t, &apitypes.OpenAPI{
+		Paths: map[string]map[string]*apitypes.Operation{
+			"/search": {
+				"get": {
+					OperationID: "searchUsers",
+					Parameters: []*apitypes.Parameter{
+						{Name: "user-id", In: "query", Required: true, Schema: &apitypes.Schema{Type: apitypes.SchemaType{Values: []string{"string"}}}},
+						{Name: "page.index", In: "query", Required: false, Schema: &apitypes.Schema{Type: apitypes.SchemaType{Values: []string{"integer"}}}},
+					},
+					Responses: map[string]*apitypes.Response{
+						"200": {Description: "ok"},
+					},
+				},
+			},
+		},
+	})
+
+	assert.Contains(t, code, `searchUsers: (query: { "user-id": string; "page.index"?: number }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string })`)
+}
+
+func TestShouldQuoteInvalidSchemaPropertyNamesGivenHyphenatedPropertyKeysWhenGeneratingThenEscapeInterfaceKeys(t *testing.T) {
+	code := generateCodeFromAPI(t, &apitypes.OpenAPI{
+		Components: apitypes.Components{
+			Schemas: map[string]*apitypes.Schema{
+				"Metadata": {
+					Type: apitypes.SchemaType{Values: []string{"object"}},
+					Properties: map[string]*apitypes.Schema{
+						"content-type": {Type: apitypes.SchemaType{Values: []string{"string"}}},
+						"@id":          {Type: apitypes.SchemaType{Values: []string{"string"}}},
+						"foo.bar":      {Type: apitypes.SchemaType{Values: []string{"integer"}}},
+					},
+					Required: []string{"content-type"},
+				},
+			},
+		},
+	})
+
+	assert.Contains(t, code, `export interface Metadata`)
+	assert.Contains(t, code, `"content-type": string;`)
+	assert.Contains(t, code, `"@id"?: string;`)
+	assert.Contains(t, code, `"foo.bar"?: number;`)
+}
+
+func TestShouldMakeOptionalRequestBodyGivenOptionalRequestBodyWhenGeneratingThenAllowMissingBody(t *testing.T) {
+	code := generateCodeFromAPI(t, &apitypes.OpenAPI{
+		Paths: map[string]map[string]*apitypes.Operation{
+			"/upload": {
+				"post": {
+					OperationID: "uploadFile",
+					RequestBody: &apitypes.RequestBodyWrapper{
+						Required: false,
+						Content: map[string]*apitypes.MediaType{
+							"multipart/form-data": {
+								Schema: &apitypes.Schema{
+									Type: apitypes.SchemaType{Values: []string{"object"}},
+									Properties: map[string]*apitypes.Schema{
+										"fileName": {Type: apitypes.SchemaType{Values: []string{"string"}}},
+									},
+									Required: []string{"fileName"},
+								},
+							},
+						},
+					},
+					Responses: map[string]*apitypes.Response{
+						"204": {Description: "No Content"},
+					},
+				},
+			},
+		},
+	})
+
+	assert.Contains(t, code, `uploadFile: (body?: { fileName: string }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<boolean>>`)
 }
 
 func TestShouldGenerateRequestBodyGivenComplexOpenAPIDocumentWhenGeneratingThenIncludeBodyArgument(t *testing.T) {
@@ -162,7 +255,7 @@ func TestShouldGenerateClosedObjectGivenFalseAdditionalPropertiesWhenGeneratingT
 				},
 			},
 		},
-	}, "")
+	})
 
 	assert.Contains(t, code, "export type ClosedMap = Record<string, never>;")
 }
@@ -174,6 +267,7 @@ func TestShouldUseMultipartRequestBodyGivenNonJsonContentWhenGeneratingThenUseTy
 				"post": {
 					OperationID: "uploadFile",
 					RequestBody: &apitypes.RequestBodyWrapper{
+						Required: true,
 						Content: map[string]*apitypes.MediaType{
 							"multipart/form-data": {
 								Schema: &apitypes.Schema{
@@ -192,7 +286,7 @@ func TestShouldUseMultipartRequestBodyGivenNonJsonContentWhenGeneratingThenUseTy
 				},
 			},
 		},
-	}, "")
+	})
 
 	assert.Contains(t, code, "uploadFile: (body: { fileName: string }, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<boolean>>")
 }
@@ -215,7 +309,7 @@ func TestShouldUseDefaultResponseGivenDefaultTextResponseWhenGeneratingThenUseTy
 				},
 			},
 		},
-	}, "")
+	})
 
 	assert.Contains(t, code, "getStatus: (options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<string>>")
 }

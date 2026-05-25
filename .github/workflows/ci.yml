@@ -19,7 +19,6 @@ on:
       - 'package-lock.json'
       - 'tsconfig.json'
       - 'vite.config.ts'
-      - 'vitest.config.ts'
   pull_request:
     branches:
       - main
@@ -38,7 +37,6 @@ on:
       - 'package-lock.json'
       - 'tsconfig.json'
       - 'vite.config.ts'
-      - 'vitest.config.ts'
 
 permissions:
   contents: read
