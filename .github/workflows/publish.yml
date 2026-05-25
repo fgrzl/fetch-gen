@@ -45,7 +45,7 @@ jobs:
         run: go mod download
 
       - name: Check Formatting
-        run: npm run fmt -- --check
+        run: npm run lint
 
       - name: Run Go Tests
         run: go test ./...
