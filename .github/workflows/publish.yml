@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
@@ -26,13 +26,13 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 'lts/*'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "lts/*"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: "1.25"
           cache: true
 
       - name: Install Dependencies
@@ -83,7 +83,7 @@ jobs:
         if: github.ref_type != 'tag'
         uses: fgrzl/actions/tag-commit@v0.0.6
         with:
-          tag: v${{ steps.package-version.outputs.version }}
+          tag: ${{ steps.package-version.outputs.version }}
 
       - name: Publish to npm (Trusted Publishing)
         if: github.ref_type == 'tag' || github.ref == 'refs/heads/main'
