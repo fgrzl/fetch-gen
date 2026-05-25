@@ -156,6 +156,48 @@ func TestShouldRejectUnsupportedParameterLocationGivenHeaderParameterWhenParsing
 	assert.ErrorContains(t, err, "unsupported parameter location")
 }
 
+func TestShouldResolveReusableParametersGivenComponentReferencesWhenParsingThenAcceptOperation(t *testing.T) {
+	api, err := parser.ParseDocument("openapi.yaml", []byte(doc(
+		"paths:",
+		"  /users/{id}:",
+		"    get:",
+		"      operationId: getUser",
+		"      parameters:",
+		"        - $ref: '#/components/parameters/UserId'",
+		"      responses:",
+		"        \"200\":",
+		"          description: ok",
+		"components:",
+		"  parameters:",
+		"    UserId:",
+		"      name: id",
+		"      in: path",
+		"      required: true",
+		"      schema:",
+		"        type: string",
+	)))
+
+	require.NoError(t, err)
+	assert.Equal(t, "#/components/parameters/UserId", api.Paths["/users/{id}"]["get"].Parameters[0].Ref)
+}
+
+func TestShouldRejectUnknownReusableParameterGivenUnresolvedRefWhenParsingThenReturnError(t *testing.T) {
+	_, err := parser.ParseDocument("openapi.yaml", []byte(doc(
+		"paths:",
+		"  /users/{id}:",
+		"    get:",
+		"      operationId: getUser",
+		"      parameters:",
+		"        - $ref: '#/components/parameters/Missing'",
+		"      responses:",
+		"        \"200\":",
+		"          description: ok",
+	)))
+
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "unresolved parameter ref")
+}
+
 func TestShouldRejectMissingResponsesGivenOperationWithoutResponsesWhenParsingThenReturnError(t *testing.T) {
 	_, err := parser.ParseDocument("openapi.yaml", []byte(doc(
 		"paths:",

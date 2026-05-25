@@ -21,6 +21,7 @@ type namedOperation struct {
 	BodyRequired bool
 	RequestType  string
 	ResponseType string
+	RawBody      bool
 	Description  string
 }
 
@@ -39,6 +40,7 @@ func Generate(api *apitypes.OpenAPI, instance string) ([]byte, error) {
 	}
 
 	var ops []namedOperation
+	serverPrefix := operationServerPrefix(api)
 	for path, methods := range api.Paths {
 		for method, op := range methods {
 			if op == nil {
@@ -47,14 +49,18 @@ func Generate(api *apitypes.OpenAPI, instance string) ([]byte, error) {
 
 			params := []apitypes.Parameter{}
 			queryParams := []apitypes.Parameter{}
-			displayPath := path
+			displayPath := serverPrefix + path
 			for _, p := range op.Parameters {
-				switch p.In {
+				resolved, err := resolveParameter(api, p, map[string]struct{}{})
+				if err != nil {
+					return nil, err
+				}
+				switch resolved.In {
 				case "path":
-					params = append(params, *p)
-					displayPath = strings.ReplaceAll(displayPath, "{"+p.Name+"}", fmt.Sprintf("${%s}", p.Name))
+					params = append(params, *resolved)
+					displayPath = strings.ReplaceAll(displayPath, "{"+resolved.Name+"}", fmt.Sprintf("${encodeURIComponent(String(%s))}", resolved.Name))
 				case "query":
-					queryParams = append(queryParams, *p)
+					queryParams = append(queryParams, *resolved)
 				}
 			}
 
@@ -80,6 +86,7 @@ func Generate(api *apitypes.OpenAPI, instance string) ([]byte, error) {
 				BodyRequired: op.RequestBody != nil && op.RequestBody.Required,
 				RequestType:  reqType,
 				ResponseType: resType,
+				RawBody:      operationHasBinaryRequest(op),
 				Description:  description,
 			})
 		}
@@ -152,10 +159,16 @@ func Generate(api *apitypes.OpenAPI, instance string) ([]byte, error) {
 					args = append(args, fmt.Sprintf("body?: %s", bodyType))
 				}
 			}
+			if op.RawBody {
+				args = append(args, "headers?: HeadersInit")
+			}
 			args = append(args, "options?: { signal?: AbortSignal; timeout?: number; operationId?: string }")
 			return strings.Join(args, ", ")
 		},
 		"clientCall": func(op namedOperation, urlExpr string, optionsVar string) string {
+			if op.RawBody {
+				return fmt.Sprintf("return client.request<%s>(%s, { method: %q, headers, body }, %s);", responseTypeValue(op), urlExpr, strings.ToUpper(op.Method), optionsVar)
+			}
 			switch op.Method {
 			case "get", "del", "head":
 				return fmt.Sprintf("return client.%s(%s, undefined, %s);", op.Method, urlExpr, optionsVar)
@@ -233,6 +246,19 @@ func Generate(api *apitypes.OpenAPI, instance string) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+func operationServerPrefix(api *apitypes.OpenAPI) string {
+	if len(api.Servers) == 0 {
+		return ""
+	}
+
+	url := strings.TrimSpace(api.Servers[0].URL)
+	if url == "" || url == "/" {
+		return ""
+	}
+
+	return strings.TrimRight(url, "/")
+}
+
 func resolveType(s *apitypes.Schema) string {
 	if s == nil {
 		return "any"
@@ -301,6 +327,9 @@ func resolveType(s *apitypes.Schema) string {
 	mapOne := func(t string) string {
 		switch t {
 		case "string":
+			if s.Format == "binary" {
+				return "Blob"
+			}
 			return "string"
 		case "integer", "number":
 			return "number"
@@ -393,6 +422,9 @@ func requestTypeForOperation(op *apitypes.Operation) string {
 	if schema == nil {
 		return ""
 	}
+	if isBinarySchema(schema) {
+		return "BodyInit"
+	}
 	return resolveType(schema)
 }
 
@@ -408,6 +440,9 @@ func responseTypeForOperation(op *apitypes.Operation) string {
 			}
 			schema := responseContentSchema(resp.Content)
 			if schema != nil {
+				if isBinarySchema(schema) {
+					return "Blob"
+				}
 				return resolveType(schema)
 			}
 		}
@@ -483,6 +518,44 @@ func hasOwnSchemaSurface(s *apitypes.Schema) bool {
 		len(s.Properties) > 0 ||
 		s.Items != nil ||
 		s.AdditionalProperties != nil
+}
+
+func isBinarySchema(s *apitypes.Schema) bool {
+	return s != nil && s.Type.Has("string") && s.Format == "binary"
+}
+
+func operationHasBinaryRequest(op *apitypes.Operation) bool {
+	return op != nil && op.RequestBody != nil && isBinarySchema(requestContentSchema(op.RequestBody.Content))
+}
+
+func responseTypeValue(op namedOperation) string {
+	if op.ResponseType != "" {
+		return op.ResponseType
+	}
+	return "any"
+}
+
+func resolveParameter(api *apitypes.OpenAPI, param *apitypes.Parameter, seen map[string]struct{}) (*apitypes.Parameter, error) {
+	if param == nil {
+		return nil, fmt.Errorf("parameter is nil")
+	}
+	if param.Ref == "" {
+		return param, nil
+	}
+	const prefix = "#/components/parameters/"
+	if !strings.HasPrefix(param.Ref, prefix) {
+		return nil, fmt.Errorf("unsupported parameter ref %q", param.Ref)
+	}
+	name := strings.TrimPrefix(param.Ref, prefix)
+	if _, ok := seen[name]; ok {
+		return nil, fmt.Errorf("cyclic parameter ref %q", param.Ref)
+	}
+	component, ok := api.Components.Parameters[name]
+	if !ok {
+		return nil, fmt.Errorf("unresolved parameter ref %q", param.Ref)
+	}
+	seen[name] = struct{}{}
+	return resolveParameter(api, component, seen)
 }
 
 func resolveObjectType(s *apitypes.Schema) string {

@@ -115,10 +115,16 @@ func (ap *AdditionalProperties) UnmarshalJSON(data []byte) error {
 type OpenAPI struct {
 	Paths      map[string]map[string]*Operation `json:"paths" yaml:"paths"`
 	Components Components                       `json:"components" yaml:"components"`
+	Servers    []Server                         `json:"servers" yaml:"servers"`
+}
+
+type Server struct {
+	URL string `json:"url" yaml:"url"`
 }
 
 type Components struct {
-	Schemas map[string]*Schema `json:"schemas" yaml:"schemas"`
+	Schemas    map[string]*Schema    `json:"schemas" yaml:"schemas"`
+	Parameters map[string]*Parameter `json:"parameters" yaml:"parameters"`
 }
 
 type Operation struct {
@@ -146,6 +152,7 @@ type Response struct {
 
 type Schema struct {
 	Type                 SchemaType            `json:"type" yaml:"type"`
+	Format               string                `json:"format" yaml:"format"`
 	Properties           map[string]*Schema    `json:"properties" yaml:"properties"`
 	Items                *Schema               `json:"items" yaml:"items"`
 	Enum                 []any                 `json:"enum" yaml:"enum"`
@@ -160,6 +167,7 @@ type Schema struct {
 }
 
 type Parameter struct {
+	Ref         string  `json:"$ref" yaml:"$ref"`
 	Name        string  `json:"name" yaml:"name"`
 	In          string  `json:"in" yaml:"in"`
 	Required    bool    `json:"required" yaml:"required"`

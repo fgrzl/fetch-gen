@@ -54,6 +54,16 @@ func validateOpenAPI(api *apitypes.OpenAPI) error {
 	for name := range api.Components.Schemas {
 		componentNames[name] = struct{}{}
 	}
+	for name, parameter := range api.Components.Parameters {
+		paramPath := fmt.Sprintf("components.parameters[%q]", name)
+		resolved, err := resolveParameter(api, parameter, map[string]struct{}{})
+		if err != nil {
+			return validationError{Path: paramPath, Message: err.Error()}
+		}
+		if err := validateParameter(paramPath, resolved, componentNames); err != nil {
+			return err
+		}
+	}
 
 	seenOperationIDs := map[string]string{}
 	for path, methods := range api.Paths {
@@ -83,29 +93,21 @@ func validateOpenAPI(api *apitypes.OpenAPI) error {
 			seenPathParams := map[string]struct{}{}
 			for i, param := range op.Parameters {
 				paramPath := fmt.Sprintf("%s.parameters[%d]", opPath, i)
-				if param == nil {
-					return validationError{Path: paramPath, Message: "parameter is null"}
+				resolved, err := resolveParameter(api, param, map[string]struct{}{})
+				if err != nil {
+					return validationError{Path: paramPath, Message: err.Error()}
 				}
-				if strings.TrimSpace(param.Name) == "" {
-					return validationError{Path: paramPath + ".name", Message: "missing parameter name"}
-				}
-				if param.In != "path" && param.In != "query" {
-					return validationError{Path: paramPath + ".in", Message: fmt.Sprintf("unsupported parameter location %q", param.In)}
-				}
-				if param.Schema == nil {
-					return validationError{Path: paramPath + ".schema", Message: "missing schema"}
-				}
-				if err := validateSchema(paramPath+".schema", param.Schema, componentNames, map[*apitypes.Schema]struct{}{}); err != nil {
+				if err := validateParameter(paramPath, resolved, componentNames); err != nil {
 					return err
 				}
-				if param.In == "path" {
-					if !param.Required {
+				if resolved.In == "path" {
+					if !resolved.Required {
 						return validationError{Path: paramPath + ".required", Message: "path parameters must be required"}
 					}
-					if _, ok := pathParamSet[param.Name]; !ok {
-						return validationError{Path: paramPath + ".name", Message: fmt.Sprintf("path parameter %q is not declared in path template %s", param.Name, path)}
+					if _, ok := pathParamSet[resolved.Name]; !ok {
+						return validationError{Path: paramPath + ".name", Message: fmt.Sprintf("path parameter %q is not declared in path template %s", resolved.Name, path)}
 					}
-					seenPathParams[param.Name] = struct{}{}
+					seenPathParams[resolved.Name] = struct{}{}
 				}
 			}
 
@@ -146,6 +148,48 @@ func validateOpenAPI(api *apitypes.OpenAPI) error {
 	}
 
 	return nil
+}
+
+func validateParameter(path string, param *apitypes.Parameter, componentNames map[string]struct{}) error {
+	if param == nil {
+		return validationError{Path: path, Message: "parameter is null"}
+	}
+	if strings.TrimSpace(param.Name) == "" {
+		return validationError{Path: path + ".name", Message: "missing parameter name"}
+	}
+	if param.In != "path" && param.In != "query" {
+		return validationError{Path: path + ".in", Message: fmt.Sprintf("unsupported parameter location %q", param.In)}
+	}
+	if param.Schema == nil {
+		return validationError{Path: path + ".schema", Message: "missing schema"}
+	}
+	return validateSchema(path+".schema", param.Schema, componentNames, map[*apitypes.Schema]struct{}{})
+}
+
+func resolveParameter(api *apitypes.OpenAPI, param *apitypes.Parameter, seen map[string]struct{}) (*apitypes.Parameter, error) {
+	if param == nil {
+		return nil, fmt.Errorf("parameter is null")
+	}
+	if param.Ref == "" {
+		return param, nil
+	}
+	const prefix = "#/components/parameters/"
+	if !strings.HasPrefix(param.Ref, prefix) {
+		return nil, fmt.Errorf("unsupported parameter ref %q", param.Ref)
+	}
+	name := strings.TrimPrefix(param.Ref, prefix)
+	if name == "" || strings.Contains(name, "/") {
+		return nil, fmt.Errorf("unsupported parameter ref %q", param.Ref)
+	}
+	if _, ok := seen[name]; ok {
+		return nil, fmt.Errorf("cyclic parameter ref %q", param.Ref)
+	}
+	component, ok := api.Components.Parameters[name]
+	if !ok {
+		return nil, fmt.Errorf("unresolved parameter ref %q", param.Ref)
+	}
+	seen[name] = struct{}{}
+	return resolveParameter(api, component, seen)
 }
 
 func validateResponses(opPath string, responses map[string]*apitypes.Response, componentNames map[string]struct{}) error {

@@ -63,6 +63,27 @@ func TestShouldExportCreateAdapterGivenEmptyOpenAPIDocumentWhenGeneratingThenEmi
 	assert.Contains(t, string(output), "export function createAdapter(client: FetchClient)")
 }
 
+func TestShouldPrefixOperationsGivenRelativeServerURLWhenGeneratingThenUseDeclaredAPIRoot(t *testing.T) {
+	code := generateCodeFromAPI(t, &apitypes.OpenAPI{
+		Servers: []apitypes.Server{{URL: "/admin/v1"}},
+		Paths: map[string]map[string]*apitypes.Operation{
+			"/buckets/{bucketName}": {
+				"get": {
+					OperationID: "getBucket",
+					Parameters: []*apitypes.Parameter{
+						{Name: "bucketName", In: "path", Required: true, Schema: &apitypes.Schema{Type: apitypes.SchemaType{Values: []string{"string"}}}},
+					},
+					Responses: map[string]*apitypes.Response{
+						"200": {Description: "ok"},
+					},
+				},
+			},
+		},
+	})
+
+	assert.Contains(t, code, "`/admin/v1/buckets/${encodeURIComponent(String(bucketName))}`")
+}
+
 func TestShouldGenerateQueryObjectGivenComplexOpenAPIDocumentWhenGeneratingThenUseQueryParams(t *testing.T) {
 	code := generateCodeFromFixture(t, "openapi-test.yaml")
 
@@ -175,6 +196,104 @@ func TestShouldGeneratePathParametersGivenComplexOpenAPIDocumentWhenGeneratingTh
 
 	assert.Contains(t, code, "updateUser: (id: string, body: UpdateUserRequest, options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<User>>")
 	assert.Contains(t, code, "getTeamMember: (org_id: string, team_id: string, member_id: string")
+	assert.Contains(t, code, "${encodeURIComponent(String(id))}")
+}
+
+func TestShouldGenerateComponentParameterRefsGivenReusablePathAndQueryParametersWhenGeneratingThenResolveInputs(t *testing.T) {
+	code := generateCodeFromAPI(t, &apitypes.OpenAPI{
+		Components: apitypes.Components{
+			Parameters: map[string]*apitypes.Parameter{
+				"BucketName": {
+					Name:     "bucketName",
+					In:       "path",
+					Required: true,
+					Schema:   &apitypes.Schema{Type: apitypes.SchemaType{Values: []string{"string"}}},
+				},
+				"Next": {
+					Name:   "next",
+					In:     "query",
+					Schema: &apitypes.Schema{Type: apitypes.SchemaType{Values: []string{"string"}}},
+				},
+			},
+		},
+		Paths: map[string]map[string]*apitypes.Operation{
+			"/buckets/{bucketName}/objects": {
+				"get": {
+					OperationID: "listObjects",
+					Parameters: []*apitypes.Parameter{
+						{Ref: "#/components/parameters/BucketName"},
+						{Ref: "#/components/parameters/Next"},
+					},
+					Responses: map[string]*apitypes.Response{
+						"204": {Description: "No Content"},
+					},
+				},
+			},
+		},
+	})
+
+	assert.Contains(t, code, "listObjects: (bucketName: string, query?: { next?: string }")
+	assert.Contains(t, code, "`/buckets/${encodeURIComponent(String(bucketName))}/objects`")
+}
+
+func TestShouldGenerateRawBinaryRequestGivenBinaryBodyWhenGeneratingThenForwardHeadersWithoutJsonSerialization(t *testing.T) {
+	code := generateCodeFromAPI(t, &apitypes.OpenAPI{
+		Paths: map[string]map[string]*apitypes.Operation{
+			"/objects/{key}/content": {
+				"put": {
+					OperationID: "putObjectContent",
+					Parameters: []*apitypes.Parameter{{
+						Name:     "key",
+						In:       "path",
+						Required: true,
+						Schema:   &apitypes.Schema{Type: apitypes.SchemaType{Values: []string{"string"}}},
+					}},
+					RequestBody: &apitypes.RequestBodyWrapper{
+						Required: true,
+						Content: map[string]*apitypes.MediaType{
+							"*/*": {
+								Schema: &apitypes.Schema{
+									Type:   apitypes.SchemaType{Values: []string{"string"}},
+									Format: "binary",
+								},
+							},
+						},
+					},
+					Responses: map[string]*apitypes.Response{
+						"200": {Content: map[string]apitypes.MediaType{
+							"application/json": {Schema: &apitypes.Schema{Type: apitypes.SchemaType{Values: []string{"object"}}}},
+						}},
+					},
+				},
+			},
+		},
+	})
+
+	assert.Contains(t, code, "putObjectContent: (key: string, body: BodyInit, headers?: HeadersInit, options?:")
+	assert.Contains(t, code, "client.request<Record<string, any>>(`/objects/${encodeURIComponent(String(key))}/content`, { method: \"PUT\", headers, body }, finalOptions)")
+	assert.NotContains(t, code, "client.put(`/objects/${encodeURIComponent(String(key))}/content`")
+}
+
+func TestShouldGenerateBlobResponseGivenBinaryContentWhenGeneratingThenTypeDownloadAsBlob(t *testing.T) {
+	code := generateCodeFromAPI(t, &apitypes.OpenAPI{
+		Paths: map[string]map[string]*apitypes.Operation{
+			"/objects/content": {
+				"get": {
+					OperationID: "downloadObjectContent",
+					Responses: map[string]*apitypes.Response{
+						"200": {Content: map[string]apitypes.MediaType{
+							"*/*": {Schema: &apitypes.Schema{
+								Type:   apitypes.SchemaType{Values: []string{"string"}},
+								Format: "binary",
+							}},
+						}},
+					},
+				},
+			},
+		},
+	})
+
+	assert.Contains(t, code, "downloadObjectContent: (options?: { signal?: AbortSignal; timeout?: number; operationId?: string }): Promise<FetchResponse<Blob>>")
 }
 
 func TestShouldGenerateDeleteOperationGivenComplexOpenAPIDocumentWhenGeneratingThenIncludeQueryArguments(t *testing.T) {
