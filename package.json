@@ -30,16 +30,14 @@
   "scripts": {
     "build": "vp pack",
     "build:shims": "vp pack",
-    "clean": "rimraf dist node_modules",
+    "clean": "npx rimraf dist node_modules",
     "test": "vitest run",
     "fmt": "vp fmt",
     "lint": "vp lint"
   },
   "devDependencies": {
     "@types/node": "^25.2.0",
-    "rimraf": "^6.1.2",
     "typescript": "^5.9.3",
-    "vite-plus": "^0.1.22",
-    "vitest": "^4.0.18"
+    "vite-plus": "^0.1.22"
   }
 }
